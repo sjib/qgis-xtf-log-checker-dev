@@ -7,7 +7,7 @@
                               -------------------
         begin                : 2021-07-13
         git sha              : $Format:%H$
-        copyright            : (C) 2021 by GeoWerkstatt GmbH
+        copyright            : (C) 2025 by GeoWerkstatt GmbH
         email                : support@geowerkstatt.ch
  ***************************************************************************/
 
