@@ -8,4 +8,4 @@ Install the [QGIS XTFLog-Checker](https://plugins.qgis.org/plugins) directly in 
 
 ## License
 The XTFLog-Checker plugin is licensed under the [GPL-3.0 license](LICENSE).  
-Copyright © 2021 [GeoWerkstatt GmbH](https://www.geowerkstatt.ch)
+Copyright © 2025 [GeoWerkstatt GmbH](https://www.geowerkstatt.ch)

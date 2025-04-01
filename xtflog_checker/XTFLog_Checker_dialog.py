@@ -7,7 +7,7 @@
                              -------------------
         begin                : 2021-07-13
         git sha              : $Format:%H$
-        copyright            : (C) 2021 by GeoWerkstatt GmbH
+        copyright            : (C) 2025 by GeoWerkstatt GmbH
         email                : support@geowerkstatt.ch
  ***************************************************************************/
 
@@ -24,7 +24,7 @@
 import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
-from qgis.PyQt.QtCore import QVariant, Qt
+from qgis.PyQt.QtCore import Qt, QMetaType
 from qgis.core import QgsVectorLayer, QgsField, QgsProject, QgsFeature, QgsGeometry, QgsPointXY, QgsEditorWidgetSetup, QgsMapLayerType
 from PyQt5.QtCore import QCoreApplication
 import requests
@@ -102,18 +102,18 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             errorLayer = QgsVectorLayer("Point?crs=epsg:2056", fileName + "_Ilivalidator_Errors", "memory")
             errorDataProvider = errorLayer.dataProvider()
 
-            errorDataProvider.addAttributes([QgsField("ErrorId", QVariant.String),
-                                            QgsField("Type", QVariant.String),
-                                            QgsField("Message", QVariant.String),
-                                            QgsField("Tid", QVariant.String),
-                                            QgsField("ObjTag", QVariant.String),
-                                            QgsField("TechId", QVariant.String),
-                                            QgsField("UserId", QVariant.String),
-                                            QgsField("IliQName", QVariant.String),
-                                            QgsField("DataSource", QVariant.String),
-                                            QgsField("Line", QVariant.String),
-                                            QgsField("TechDetails", QVariant.String),
-                                            QgsField("Checked", QVariant.Int)])
+            errorDataProvider.addAttributes([QgsField("ErrorId", QMetaType.QString),
+                                            QgsField("Type", QMetaType.QString),
+                                            QgsField("Message", QMetaType.QString),
+                                            QgsField("Tid", QMetaType.QString),
+                                            QgsField("ObjTag", QMetaType.QString),
+                                            QgsField("TechId", QMetaType.QString),
+                                            QgsField("UserId", QMetaType.QString),
+                                            QgsField("IliQName", QMetaType.QString),
+                                            QgsField("DataSource", QMetaType.QString),
+                                            QgsField("Line", QMetaType.QString),
+                                            QgsField("TechDetails", QMetaType.QString),
+                                            QgsField("Checked", QMetaType.Type.Int)])
 
             errorLayer.updateFields()
 
