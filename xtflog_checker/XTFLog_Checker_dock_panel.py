@@ -58,7 +58,7 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
     def updateList(self):
         self.isUpdating = True
         error_idx = self.errorLayer.fields().indexOf('ErrorId')
-        message_idx = self.errorLayer.fields().indexOf('Description')
+        message_idx = self.errorLayer.fields().indexOf('Message')
         self.listWidget.clear()
         if self.checkBox_errors.isChecked() and self.checkBox_warnings.isChecked():
             expression = " \"Type\" =  \'Error\' OR \"Type\" =  \'Warning\'"

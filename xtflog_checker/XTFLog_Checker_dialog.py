@@ -46,7 +46,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.btn_run.setEnabled(file_path != None)
         self.btn_cancel.clicked.connect(self.closePlugin)
         self.btn_cancel.setText(QCoreApplication.translate('generals', 'Cancel'))
-        self.attributeNames = ["Type", "Message", "Tid", "ObjTag", "TechId", "UserId", "IliQName", "DataSource", "Line", "TechDetails","Category","Description","Model","Topic","Class","Name","Value"]
+        self.attributeNames = ["Type", "Message","Description","Category", "Tid", "ObjTag","Model", "TechId","Topic", "UserId","Class","Name","Value", "IliQName", "DataSource", "Line", "TechDetails"]
         self.btn_show_error_log.clicked.connect(self.showErrorLog)
         self.btn_show_error_log.setText(QCoreApplication.translate('generals', 'Show error log'))
         self.newLayerGroupBox.setTitle(QCoreApplication.translate('generals', 'Upload xtf-log file'))
@@ -117,9 +117,9 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
 
             errorDataProvider.addAttributes([QgsField("ErrorId", QMetaType.QString),
                                             QgsField("Type", QMetaType.QString),
-                                            QgsField("Category", QMetaType.QString),
                                             QgsField("Message", QMetaType.QString),
                                             QgsField("Description", QMetaType.QString),
+                                            QgsField("Category", QMetaType.QString),
                                             QgsField("Tid", QMetaType.QString),
                                             QgsField("ObjTag", QMetaType.QString),
                                             QgsField("Model", QMetaType.QString),
@@ -218,9 +218,9 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
 
                 errorDataProvider.addAttributes([QgsField("ErrorId", QMetaType.QString),
                                             QgsField("Type", QMetaType.QString),
-                                            QgsField("Category", QMetaType.QString),
                                             QgsField("Message", QMetaType.QString),
                                             QgsField("Description", QMetaType.QString),
+                                            QgsField("Category", QMetaType.QString),
                                             QgsField("Tid", QMetaType.QString),
                                             QgsField("ObjTag", QMetaType.QString),
                                             QgsField("Model", QMetaType.QString),
@@ -263,10 +263,8 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                             Coordinate = GeometryElement;
                             if Coordinate != None:
                                 f = QgsFeature()
-                                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'test3'),  duration=2)
                                 x = Coordinate.find(interlisPrefix + 'C1').text
                                 y = Coordinate.find(interlisPrefix + 'C2').text
-                                #self.iface.messageBar().pushMessage(('generals', x,y),  duration=4)
                                 if(x and y):
                                     f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(x), float(y))))
                                 attributeList = [ErrorId]
@@ -317,16 +315,13 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
     def showDock(self):
         for dock in self.iface.mainWindow().findChildren(XTFLog_DockPanel):
             self.iface.removeDockWidget(dock)
-        self.dock = XTFLog_DockPanel(self.iface, self.errorLayer)
+        if self.errorLayer.name().endswith("_igChecker_Errors"):
+            self.dock = XTFLog_igCheck_DockPanel(self.iface, self.errorLayer)
+        else:
+            self.dock = XTFLog_DockPanel(self.iface, self.errorLayer)
         self.iface.addTabifiedDockWidget(Qt.RightDockWidgetArea, self.dock, raiseTab=True)
         self.close()
 
-    # def showDock_ig(self):
-    #     for dock in self.iface.mainWindow().findChildren(XTFLog_igCheck_DockPanel):
-    #         self.iface.removeDockWidget(dock)
-    #     self.dock = XTFLog_igCheck_DockPanel(self.iface, self.errorLayer)
-    #     self.iface.addTabifiedDockWidget(Qt.RightDockWidgetArea, self.dock, raiseTab=True)
-    #     self.close()
 
     def closePlugin(self):
         self.close()
