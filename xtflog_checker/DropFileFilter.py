@@ -22,8 +22,11 @@
 """
 
 from qgis.PyQt.QtCore import QObject, QEvent
-from .XTFLog_Checker_dialog import XTFLog_CheckerDialog
+import xml.etree.ElementTree as ET
 import pathlib
+
+from .XTFLog_Checker_dialog import XTFLog_CheckerDialog
+
 
 class DropFileFilter(QObject):
     def __init__(self, parent=None):

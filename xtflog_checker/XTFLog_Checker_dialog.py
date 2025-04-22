@@ -24,13 +24,13 @@
 import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
-from qgis.PyQt.QtCore import Qt, QMetaType
+from qgis.PyQt.QtCore import Qt, QMetaType,QCoreApplication
 from qgis.core import QgsVectorLayer, QgsField, QgsProject, QgsFeature, QgsGeometry, QgsPointXY, QgsEditorWidgetSetup, QgsMapLayerType
-from PyQt5.QtCore import QCoreApplication
 import requests
 import re
 import xml.etree.ElementTree as ET
 from .XTFLog_Checker_dock_panel import XTFLog_DockPanel
+from .XTFLog_Checker_igcheck_dock_panel import XTFLog_igCheck_DockPanel
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ui/dialog_base.ui'))
@@ -46,7 +46,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.btn_run.setEnabled(file_path != None)
         self.btn_cancel.clicked.connect(self.closePlugin)
         self.btn_cancel.setText(QCoreApplication.translate('generals', 'Cancel'))
-        self.attributeNames = ["Type", "Message", "Tid", "ObjTag", "TechId", "UserId", "IliQName", "DataSource", "Line", "TechDetails"]
+        self.attributeNames = ["Type", "Message", "Tid", "ObjTag", "TechId", "UserId", "IliQName", "DataSource", "Line", "TechDetails","Category","Description","Model","Topic","Class","Name","Value"]
         self.btn_show_error_log.clicked.connect(self.showErrorLog)
         self.btn_show_error_log.setText(QCoreApplication.translate('generals', 'Show error log'))
         self.newLayerGroupBox.setTitle(QCoreApplication.translate('generals', 'Upload xtf-log file'))
@@ -97,6 +97,19 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
 
         if fileName != None:
             root = tree.getroot()
+            ns = {'ili': 'http://www.interlis.ch/INTERLIS2.3'}
+            models_tag = root.find('.//ili:MODELS/ili:MODEL', namespaces=ns)
+            if models_tag is not None:
+                model_name = models_tag.get('NAME')
+                if model_name == 'ErrorLog14':
+                    self.visualizeLog_ig()
+                    return
+                elif model_name != 'IliVErrors':
+                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported file'),
+                                                        QCoreApplication.translate('generals', f'Model {model_name} not supported.'), duration=8)
+                    self.close()
+                    return
+
             x = None
             y = None
             errorLayer = QgsVectorLayer("Point?crs=epsg:2056", fileName + "_Ilivalidator_Errors", "memory")
@@ -104,11 +117,18 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
 
             errorDataProvider.addAttributes([QgsField("ErrorId", QMetaType.QString),
                                             QgsField("Type", QMetaType.QString),
+                                            QgsField("Category", QMetaType.QString),
                                             QgsField("Message", QMetaType.QString),
+                                            QgsField("Description", QMetaType.QString),
                                             QgsField("Tid", QMetaType.QString),
                                             QgsField("ObjTag", QMetaType.QString),
+                                            QgsField("Model", QMetaType.QString),
                                             QgsField("TechId", QMetaType.QString),
+                                            QgsField("Topic", QMetaType.QString),
                                             QgsField("UserId", QMetaType.QString),
+                                            QgsField("Class", QMetaType.QString),
+                                            QgsField("Name", QMetaType.QString),
+                                            QgsField("Value", QMetaType.QString),
                                             QgsField("IliQName", QMetaType.QString),
                                             QgsField("DataSource", QMetaType.QString),
                                             QgsField("Line", QMetaType.QString),
@@ -166,6 +186,111 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 self.showDock()
             self.close()
 
+    def visualizeLog_ig(self):
+            path = self.txt_input.text()
+            fileName = None
+            if(path.startswith("http")):
+                try:
+                    xml_string = requests.get(path).content.decode("utf-8")
+                    if(len(xml_string)>5000000):
+                        self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Large file'),  QCoreApplication.translate('generals', 'Processing of large XTF-Log files might take a while'), duration=8)
+                        self.iface.mainWindow().repaint()
+                    tree = ET.ElementTree(ET.fromstring(xml_string))
+                    fileName = re.findall("connectionId=(.*?)&fileExtension=", path)[0] if len(re.findall("connectionId=(.*?)&fileExtension=", path))!=0 else None
+                except:
+                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'Could not get a valid XTF-Log file from specified Url'), duration=8)
+            else:
+                try:
+                    if(os.path.getsize(path)>5000000):
+                        self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Large file'),  QCoreApplication.translate('generals', 'Processing of large XTF-Log files might take a while'), duration=8)
+                        self.iface.mainWindow().repaint()
+                    tree = ET.parse(path)
+                    fileName, fileExtension = os.path.splitext(os.path.basename(path))
+                except:
+                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'No valid XTF-Log file at specified Path'), duration=8)
+
+            if fileName != None:
+                root = tree.getroot()
+                x = None
+                y = None
+                errorLayer = QgsVectorLayer("Point?crs=epsg:2056", fileName + "_igChecker_Errors", "memory")
+                errorDataProvider = errorLayer.dataProvider()
+
+                errorDataProvider.addAttributes([QgsField("ErrorId", QMetaType.QString),
+                                            QgsField("Type", QMetaType.QString),
+                                            QgsField("Category", QMetaType.QString),
+                                            QgsField("Message", QMetaType.QString),
+                                            QgsField("Description", QMetaType.QString),
+                                            QgsField("Tid", QMetaType.QString),
+                                            QgsField("ObjTag", QMetaType.QString),
+                                            QgsField("Model", QMetaType.QString),
+                                            QgsField("TechId", QMetaType.QString),
+                                            QgsField("Topic", QMetaType.QString),
+                                            QgsField("UserId", QMetaType.QString),
+                                            QgsField("Class", QMetaType.QString),
+                                            QgsField("Name", QMetaType.QString),
+                                            QgsField("Value", QMetaType.QString),
+                                            QgsField("IliQName", QMetaType.QString),
+                                            QgsField("DataSource", QMetaType.QString),
+                                            QgsField("Line", QMetaType.QString),
+                                            QgsField("TechDetails", QMetaType.QString),
+                                            QgsField("Checked", QMetaType.Type.Int)])
+
+                errorLayer.updateFields()
+
+                # Hide Checked attribute from user
+                setup = QgsEditorWidgetSetup('Hidden', {})
+                error_idx = errorLayer.fields().indexFromName('Checked')
+                errorLayer.setEditorWidgetSetup(error_idx, setup)
+
+                # Remove layer if exists
+                existing_error_layer = QgsProject.instance().mapLayersByName("igChecker_errors")
+                if len(existing_error_layer) != 0:
+                    QgsProject.instance().removeMapLayer(existing_error_layer[0])
+
+                QgsProject.instance().addMapLayer(errorLayer)
+
+                interlisPrefix = '{http://www.interlis.ch/INTERLIS2.3}'
+                for child in root.iter(interlisPrefix + 'ErrorLog14.Errors.Error'):
+                    ErrorId = child.attrib["TID"]
+                    attributes = {}
+                    for attributeName in self.attributeNames:
+                        element = child.find(interlisPrefix + attributeName)
+                        attributes[attributeName] = (element.text if element != None else "")
+                    if attributes["Category"] == 'error' or attributes["Category"] == 'warning':
+                        GeometryElement = child.find(interlisPrefix + 'Geom')[0][0][0]
+                        if GeometryElement != None:
+                            Coordinate = GeometryElement;
+                            if Coordinate != None:
+                                f = QgsFeature()
+                                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'test3'),  duration=2)
+                                x = Coordinate.find(interlisPrefix + 'C1').text
+                                y = Coordinate.find(interlisPrefix + 'C2').text
+                                #self.iface.messageBar().pushMessage(('generals', x,y),  duration=4)
+                                if(x and y):
+                                    f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(x), float(y))))
+                                attributeList = [ErrorId]
+                                attributeList.extend(list(attributes.values()))
+                                # set Checked attribute to unchecked
+                                attributeList.append(0)
+                                f.setAttributes(attributeList)
+                                errorDataProvider.addFeature(f)
+                if(errorLayer.featureCount()== 0):
+                    QgsProject.instance().removeMapLayer(errorLayer)
+                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', 'The selected XTF file contains no igCheck-Errors, select another file.'), duration=8)
+                    self.close()
+                    return
+
+                errorLayer.updateExtents()
+                self.errorLayer = errorLayer
+                self.hideCheckedColumns(errorLayer)
+
+                if(self.errorLayer != None):
+                    self.showDock()
+                self.close()
+
+
+
     def showErrorLog(self):
         for layer in QgsProject.instance().mapLayers().values():
             if layer.name() == self.layerbox.currentText():
@@ -195,6 +320,13 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.dock = XTFLog_DockPanel(self.iface, self.errorLayer)
         self.iface.addTabifiedDockWidget(Qt.RightDockWidgetArea, self.dock, raiseTab=True)
         self.close()
+
+    # def showDock_ig(self):
+    #     for dock in self.iface.mainWindow().findChildren(XTFLog_igCheck_DockPanel):
+    #         self.iface.removeDockWidget(dock)
+    #     self.dock = XTFLog_igCheck_DockPanel(self.iface, self.errorLayer)
+    #     self.iface.addTabifiedDockWidget(Qt.RightDockWidgetArea, self.dock, raiseTab=True)
+    #     self.close()
 
     def closePlugin(self):
         self.close()
