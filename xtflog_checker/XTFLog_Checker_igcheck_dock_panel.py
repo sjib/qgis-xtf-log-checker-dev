@@ -24,7 +24,7 @@ import os
 
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem
-from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject
+from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject,QgsWkbTypes
 from qgis.PyQt.QtCore import QCoreApplication
 
 
@@ -45,7 +45,16 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         self.checkBox_warnings.setText(QCoreApplication.translate('generals', 'Show warnings'))
         self.listWidget.itemSelectionChanged.connect(self.selectionChanged)
         self.listWidget.itemChanged.connect(self.updateItem)
-        self.setWindowTitle(QCoreApplication.translate('generals', 'igCheck Error log'))
+        # change window title based on geometry type
+        geometry_type = self.errorLayer.geometryType()
+        if geometry_type == QgsWkbTypes.PointGeometry:
+            self.setWindowTitle(QCoreApplication.translate('generals', 'igCheck - Point Errors'))
+        elif geometry_type == QgsWkbTypes.LineGeometry:
+            self.setWindowTitle(QCoreApplication.translate('generals', 'igCheck - Line Errors'))
+        elif geometry_type == QgsWkbTypes.PolygonGeometry:
+            self.setWindowTitle(QCoreApplication.translate('generals', 'igCheck - Surface Errors'))
+        else:
+            self.setWindowTitle(QCoreApplication.translate('generals', 'igCheck Error log'))
 
         if not self.errorLayer:
             return

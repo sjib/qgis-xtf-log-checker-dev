@@ -187,154 +187,180 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.close()
 
     def visualizeLog_ig(self):
-            path = self.txt_input.text()
-            fileName = None
-            if(path.startswith("http")):
-                try:
-                    xml_string = requests.get(path).content.decode("utf-8")
-                    if(len(xml_string)>5000000):
-                        self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Large file'),  QCoreApplication.translate('generals', 'Processing of large XTF-Log files might take a while'), duration=8)
-                        self.iface.mainWindow().repaint()
-                    tree = ET.ElementTree(ET.fromstring(xml_string))
-                    fileName = re.findall("connectionId=(.*?)&fileExtension=", path)[0] if len(re.findall("connectionId=(.*?)&fileExtension=", path))!=0 else None
-                except:
-                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'Could not get a valid XTF-Log file from specified Url'), duration=8)
-            else:
-                try:
-                    if(os.path.getsize(path)>5000000):
-                        self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Large file'),  QCoreApplication.translate('generals', 'Processing of large XTF-Log files might take a while'), duration=8)
-                        self.iface.mainWindow().repaint()
-                    tree = ET.parse(path)
-                    fileName, fileExtension = os.path.splitext(os.path.basename(path))
-                except:
-                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'No valid XTF-Log file at specified Path'), duration=8)
+        def create_error_layer(layer_name, geometry_type):
+            layer = QgsVectorLayer(f"{geometry_type}?crs=epsg:2056", layer_name, "memory")
+            pr = layer.dataProvider()
+            pr.addAttributes([
+                QgsField("ErrorId", QMetaType.QString),
+                QgsField("Type", QMetaType.QString),
+                QgsField("Message", QMetaType.QString),
+                QgsField("Description", QMetaType.QString),
+                QgsField("Category", QMetaType.QString),
+                QgsField("Tid", QMetaType.QString),
+                QgsField("ObjTag", QMetaType.QString),
+                QgsField("Model", QMetaType.QString),
+                QgsField("TechId", QMetaType.QString),
+                QgsField("Topic", QMetaType.QString),
+                QgsField("UserId", QMetaType.QString),
+                QgsField("Class", QMetaType.QString),
+                QgsField("Name", QMetaType.QString),
+                QgsField("Value", QMetaType.QString),
+                QgsField("IliQName", QMetaType.QString),
+                QgsField("DataSource", QMetaType.QString),
+                QgsField("Line", QMetaType.QString),
+                QgsField("TechDetails", QMetaType.QString),
+                QgsField("Checked", QMetaType.Type.Int)
+            ])
+            layer.updateFields()
+            # Hide 'Checked' attribute
+            setup = QgsEditorWidgetSetup('Hidden', {})
+            idx = layer.fields().indexFromName('Checked')
+            layer.setEditorWidgetSetup(idx, setup)
+            return layer
 
-            if fileName != None:
-                root = tree.getroot()
-                x = None
-                y = None
-                ns = {'ili': 'http://www.interlis.ch/INTERLIS2.3'}
-                lyperType = root.find('.//ili:ErrorLog14.Errors.Error/ili:Geom', namespaces=ns)[0].tag.split('.')[-1]
-                if lyperType == 'PointGeometry':
-                    errorLayer = QgsVectorLayer("Point?crs=epsg:2056", fileName + "_igChecker_Errors", "memory")    
-                elif lyperType == 'LineGeometry':
-                    errorLayer = QgsVectorLayer("LineString?crs=epsg:2056", fileName + "_igChecker_Errors", "memory")   
-                elif lyperType == 'SurfaceGeometry':
-                    errorLayer = QgsVectorLayer("Polygon?crs=epsg:2056", fileName + "_igChecker_Errors", "memory")
-                errorDataProvider = errorLayer.dataProvider()
+        path = self.txt_input.text()
+        fileName = None
+        tree = None
 
-                errorDataProvider.addAttributes([QgsField("ErrorId", QMetaType.QString),
-                                            QgsField("Type", QMetaType.QString),
-                                            QgsField("Message", QMetaType.QString),
-                                            QgsField("Description", QMetaType.QString),
-                                            QgsField("Category", QMetaType.QString),
-                                            QgsField("Tid", QMetaType.QString),
-                                            QgsField("ObjTag", QMetaType.QString),
-                                            QgsField("Model", QMetaType.QString),
-                                            QgsField("TechId", QMetaType.QString),
-                                            QgsField("Topic", QMetaType.QString),
-                                            QgsField("UserId", QMetaType.QString),
-                                            QgsField("Class", QMetaType.QString),
-                                            QgsField("Name", QMetaType.QString),
-                                            QgsField("Value", QMetaType.QString),
-                                            QgsField("IliQName", QMetaType.QString),
-                                            QgsField("DataSource", QMetaType.QString),
-                                            QgsField("Line", QMetaType.QString),
-                                            QgsField("TechDetails", QMetaType.QString),
-                                            QgsField("Checked", QMetaType.Type.Int)])
+        if path.startswith("http"):
+            try:
+                xml_string = requests.get(path).content.decode("utf-8")
+                if len(xml_string) > 5000000:
+                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Large file'), QCoreApplication.translate('generals', 'Processing of large XTF-Log files might take a while'), duration=8)
+                    self.iface.mainWindow().repaint()
+                tree = ET.ElementTree(ET.fromstring(xml_string))
+                fileName = re.findall("connectionId=(.*?)&fileExtension=", path)[0] if re.findall("connectionId=(.*?)&fileExtension=", path) else None
+            except Exception as e:
+                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'Could not get a valid XTF-Log file from specified Url'), duration=8)
+                return
+        else:
+            try:
+                if os.path.getsize(path) > 5000000:
+                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Large file'), QCoreApplication.translate('generals', 'Processing of large XTF-Log files might take a while'), duration=8)
+                    self.iface.mainWindow().repaint()
+                tree = ET.parse(path)
+                fileName, _ = os.path.splitext(os.path.basename(path))
+            except Exception as e:
+                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'No valid XTF-Log file at specified Path'), duration=8)
+                return
 
-                errorLayer.updateFields()
+        if fileName is None:
+            return
 
-                # Hide Checked attribute from user
-                setup = QgsEditorWidgetSetup('Hidden', {})
-                error_idx = errorLayer.fields().indexFromName('Checked')
-                errorLayer.setEditorWidgetSetup(error_idx, setup)
+        root = tree.getroot()
+        interlisPrefix = '{http://www.interlis.ch/INTERLIS2.3}'
+        ns = {'ig': 'http://www.interlis.ch/INTERLIS2.3'}
 
-                # Remove layer if exists
-                existing_error_layer = QgsProject.instance().mapLayersByName("igChecker_errors")
-                if len(existing_error_layer) != 0:
-                    QgsProject.instance().removeMapLayer(existing_error_layer[0])
+        # Step 1: Detect which types exist
+        has_point = False
+        has_line = False
+        has_surface = False
 
-                QgsProject.instance().addMapLayer(errorLayer)
+        for child in root.iter(interlisPrefix + 'ErrorLog14.Errors.Error'):
+            geom_element = child.find(interlisPrefix + 'Geom')
+            if geom_element is not None and len(geom_element) > 0:
+                LogType = geom_element[0].tag.split('.')[-1]
+                if LogType == 'PointGeometry':
+                    has_point = True
+                elif LogType == 'LineGeometry':
+                    has_line = True
+                elif LogType == 'SurfaceGeometry':
+                    has_surface = True
 
-                interlisPrefix = '{http://www.interlis.ch/INTERLIS2.3}'
-                for child in root.iter(interlisPrefix + 'ErrorLog14.Errors.Error'):
-                    ErrorId = child.attrib["TID"]
-                    attributes = {}
-                    for attributeName in self.attributeNames:
-                        element = child.find(interlisPrefix + attributeName)
-                        attributes[attributeName] = (element.text if element != None else "")
-                    if attributes["Category"] == 'error' or attributes["Category"] == 'warning':
-                        LogType = child.find(interlisPrefix + 'Geom')[0].tag.split('.')[-1]
-                        if LogType == 'PointGeometry':
-                            GeometryElement = child.find(interlisPrefix + 'Geom')[0][0][0]
-                            if GeometryElement != None:
-                                Coordinate = GeometryElement;
-                                if Coordinate != None:
-                                    f = QgsFeature()
-                                    x = Coordinate.find(interlisPrefix + 'C1').text
-                                    y = Coordinate.find(interlisPrefix + 'C2').text
-                                    if(x and y):
-                                        f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(x), float(y))))
-                                    attributeList = [ErrorId]
-                                    attributeList.extend(list(attributes.values()))
-                                    # set Checked attribute to unchecked
-                                    attributeList.append(0)
-                                    f.setAttributes(attributeList)
-                                    errorDataProvider.addFeature(f)
-                        elif LogType == 'LineGeometry':
-                            ns = {'ig': 'http://www.interlis.ch/INTERLIS2.3'}
-                            GeometryElement = child.find('.//ig:Geom/ig:POLYLINE', namespaces=ns)
-                            if GeometryElement != None:
-                                f = QgsFeature()
-                                points = []
-                                for coord in GeometryElement.findall(interlisPrefix + 'COORD'):
-                                    x = coord.find(interlisPrefix + 'C1').text
-                                    y = coord.find(interlisPrefix + 'C2').text
-                                    floatx = float(x)
-                                    floaty = float(y)
-                                    print(floatx, floaty)
-                                    points.append(QgsPointXY(floatx, floaty))                            
-                                f.setGeometry(QgsGeometry.fromPolylineXY(points))
-                                attributeList = [ErrorId]
-                                attributeList.extend(list(attributes.values()))
-                                # set Checked attribute to unchecked
-                                attributeList.append(0)
-                                f.setAttributes(attributeList)
-                                errorDataProvider.addFeature(f)
-                        elif LogType == 'SurfaceGeometry':
-                            ns = {'ig': 'http://www.interlis.ch/INTERLIS2.3'}
-                            GeometryElement = child.find('.//ig:Geom/ig:SURFACE/ig:BOUNDARY/ig:POLYLINE', namespaces=ns)
-                            if GeometryElement != None:
-                                f = QgsFeature()
-                                points = []
-                                for coord in GeometryElement.findall(interlisPrefix + 'COORD'):
-                                    x = coord.find(interlisPrefix + 'C1').text
-                                    y = coord.find(interlisPrefix + 'C2').text
-                                    floatx = float(x)
-                                    floaty = float(y)
-                                    print(floatx, floaty)
-                                    points.append(QgsPointXY(floatx, floaty))                            
-                                f.setGeometry(QgsGeometry.fromPolygonXY([points]))
-                                attributeList = [ErrorId]
-                                attributeList.extend(list(attributes.values()))
-                                # set Checked attribute to unchecked
-                                attributeList.append(0)
-                                f.setAttributes(attributeList)
-                                errorDataProvider.addFeature(f)
-                if(errorLayer.featureCount()== 0):
-                    QgsProject.instance().removeMapLayer(errorLayer)
-                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', 'The selected XTF file contains no igCheck-Errors, select another file.'), duration=8)
-                    self.close()
-                    return
+        if not (has_point or has_line or has_surface):
+            self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid geometry'), QCoreApplication.translate('generals', 'No Point, Line or Surface Geometries found.'), duration=8)
+            return
 
-                errorLayer.updateExtents()
-                self.errorLayer = errorLayer
-                self.hideCheckedColumns(errorLayer)
+        # Step 2: Create layers
+        point_layer = create_error_layer(fileName + "_igChecker_Points", "Point") if has_point else None
+        line_layer = create_error_layer(fileName + "_igChecker_Lines", "LineString") if has_line else None
+        polygon_layer = create_error_layer(fileName + "_igChecker_Surfaces", "Polygon") if has_surface else None
 
-                if(self.errorLayer != None):
-                    self.showDock()
-                self.close()
+        # Step 3: Insert features
+        for child in root.iter(interlisPrefix + 'ErrorLog14.Errors.Error'):
+            ErrorId = child.attrib["TID"]
+            attributes = {}
+            for attributeName in self.attributeNames:
+                element = child.find(interlisPrefix + attributeName)
+                attributes[attributeName] = (element.text if element is not None else "")
+            if attributes["Category"] not in ['error', 'warning']:
+                continue
+
+            geom_element = child.find(interlisPrefix + 'Geom')
+            if geom_element is None or len(geom_element) == 0:
+                continue
+
+            LogType = geom_element[0].tag.split('.')[-1]
+            f = QgsFeature()
+
+            if LogType == 'PointGeometry' and point_layer:
+                coordinate = geom_element[0][0][0]
+                if coordinate is not None:
+                    x = coordinate.find(interlisPrefix + 'C1').text
+                    y = coordinate.find(interlisPrefix + 'C2').text
+                    if x and y:
+                        f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(x), float(y))))
+                        attributeList = [ErrorId]
+                        attributeList.extend(list(attributes.values()))
+                        attributeList.append(0)  # Checked
+                        f.setAttributes(attributeList)
+                        point_layer.dataProvider().addFeature(f)
+
+            elif LogType == 'LineGeometry' and line_layer:
+                polyline = child.find('.//ig:Geom/ig:POLYLINE', namespaces=ns)
+                if polyline is not None:
+                    points = []
+                    for coord in polyline.findall(interlisPrefix + 'COORD'):
+                        x = coord.find(interlisPrefix + 'C1').text
+                        y = coord.find(interlisPrefix + 'C2').text
+                        points.append(QgsPointXY(float(x), float(y)))
+                    if points:
+                        f.setGeometry(QgsGeometry.fromPolylineXY(points))
+                        attributeList = [ErrorId]
+                        attributeList.extend(list(attributes.values()))
+                        attributeList.append(0)
+                        f.setAttributes(attributeList)
+                        line_layer.dataProvider().addFeature(f)
+
+            elif LogType == 'SurfaceGeometry' and polygon_layer:
+                polyline = child.find('.//ig:Geom/ig:SURFACE/ig:BOUNDARY/ig:POLYLINE', namespaces=ns)
+                if polyline is not None:
+                    points = []
+                    for coord in polyline.findall(interlisPrefix + 'COORD'):
+                        x = coord.find(interlisPrefix + 'C1').text
+                        y = coord.find(interlisPrefix + 'C2').text
+                        points.append(QgsPointXY(float(x), float(y)))
+                    if points:
+                        f.setGeometry(QgsGeometry.fromPolygonXY([points]))
+                        attributeList = [ErrorId]
+                        attributeList.extend(list(attributes.values()))
+                        attributeList.append(0)
+                        f.setAttributes(attributeList)
+                        polygon_layer.dataProvider().addFeature(f)
+
+        # Step 4: Add layers to project
+        if point_layer and point_layer.featureCount() > 0:
+            point_layer.updateExtents()
+            QgsProject.instance().addMapLayer(point_layer)
+        if line_layer and line_layer.featureCount() > 0:
+            line_layer.updateExtents()
+            QgsProject.instance().addMapLayer(line_layer)
+        if polygon_layer and polygon_layer.featureCount() > 0:
+            polygon_layer.updateExtents()
+            QgsProject.instance().addMapLayer(polygon_layer)
+
+        if not ((point_layer and point_layer.featureCount() > 0) or
+                (line_layer and line_layer.featureCount() > 0) or
+                (polygon_layer and polygon_layer.featureCount() > 0)):
+            self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', 'The selected XTF file contains no igCheck-Errors, select another file.'), duration=8)
+            return
+
+        # optional: store last used layer
+        self.errorLayer = point_layer or line_layer or polygon_layer
+        if self.errorLayer:
+            self.showDock()
+        self.close()
+
 
 
 
@@ -364,12 +390,13 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
     def showDock(self):
         for dock in self.iface.mainWindow().findChildren(XTFLog_DockPanel):
             self.iface.removeDockWidget(dock)
-        if self.errorLayer.name().endswith("_igChecker_Errors"):
+        if "_igChecker" in self.errorLayer.name():
             self.dock = XTFLog_igCheck_DockPanel(self.iface, self.errorLayer)
         else:
             self.dock = XTFLog_DockPanel(self.iface, self.errorLayer)
         self.iface.addTabifiedDockWidget(Qt.RightDockWidgetArea, self.dock, raiseTab=True)
         self.close()
+
 
 
     def closePlugin(self):
