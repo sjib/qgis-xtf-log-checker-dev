@@ -213,7 +213,14 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 root = tree.getroot()
                 x = None
                 y = None
-                errorLayer = QgsVectorLayer("Point?crs=epsg:2056", fileName + "_igChecker_Errors", "memory")
+                ns = {'ili': 'http://www.interlis.ch/INTERLIS2.3'}
+                lyperType = root.find('.//ili:ErrorLog14.Errors.Error/ili:Geom', namespaces=ns)[0].tag.split('.')[-1]
+                if lyperType == 'PointGeometry':
+                    errorLayer = QgsVectorLayer("Point?crs=epsg:2056", fileName + "_igChecker_Errors", "memory")    
+                elif lyperType == 'LineGeometry':
+                    errorLayer = QgsVectorLayer("LineString?crs=epsg:2056", fileName + "_igChecker_Errors", "memory")   
+                elif lyperType == 'SurfaceGeometry':
+                    errorLayer = QgsVectorLayer("Polygon?crs=epsg:2056", fileName + "_igChecker_Errors", "memory")
                 errorDataProvider = errorLayer.dataProvider()
 
                 errorDataProvider.addAttributes([QgsField("ErrorId", QMetaType.QString),
@@ -258,15 +265,57 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                         element = child.find(interlisPrefix + attributeName)
                         attributes[attributeName] = (element.text if element != None else "")
                     if attributes["Category"] == 'error' or attributes["Category"] == 'warning':
-                        GeometryElement = child.find(interlisPrefix + 'Geom')[0][0][0]
-                        if GeometryElement != None:
-                            Coordinate = GeometryElement;
-                            if Coordinate != None:
+                        LogType = child.find(interlisPrefix + 'Geom')[0].tag.split('.')[-1]
+                        if LogType == 'PointGeometry':
+                            GeometryElement = child.find(interlisPrefix + 'Geom')[0][0][0]
+                            if GeometryElement != None:
+                                Coordinate = GeometryElement;
+                                if Coordinate != None:
+                                    f = QgsFeature()
+                                    x = Coordinate.find(interlisPrefix + 'C1').text
+                                    y = Coordinate.find(interlisPrefix + 'C2').text
+                                    if(x and y):
+                                        f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(x), float(y))))
+                                    attributeList = [ErrorId]
+                                    attributeList.extend(list(attributes.values()))
+                                    # set Checked attribute to unchecked
+                                    attributeList.append(0)
+                                    f.setAttributes(attributeList)
+                                    errorDataProvider.addFeature(f)
+                        elif LogType == 'LineGeometry':
+                            ns = {'ig': 'http://www.interlis.ch/INTERLIS2.3'}
+                            GeometryElement = child.find('.//ig:Geom/ig:POLYLINE', namespaces=ns)
+                            if GeometryElement != None:
                                 f = QgsFeature()
-                                x = Coordinate.find(interlisPrefix + 'C1').text
-                                y = Coordinate.find(interlisPrefix + 'C2').text
-                                if(x and y):
-                                    f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(x), float(y))))
+                                points = []
+                                for coord in GeometryElement.findall(interlisPrefix + 'COORD'):
+                                    x = coord.find(interlisPrefix + 'C1').text
+                                    y = coord.find(interlisPrefix + 'C2').text
+                                    floatx = float(x)
+                                    floaty = float(y)
+                                    print(floatx, floaty)
+                                    points.append(QgsPointXY(floatx, floaty))                            
+                                f.setGeometry(QgsGeometry.fromPolylineXY(points))
+                                attributeList = [ErrorId]
+                                attributeList.extend(list(attributes.values()))
+                                # set Checked attribute to unchecked
+                                attributeList.append(0)
+                                f.setAttributes(attributeList)
+                                errorDataProvider.addFeature(f)
+                        elif LogType == 'SurfaceGeometry':
+                            ns = {'ig': 'http://www.interlis.ch/INTERLIS2.3'}
+                            GeometryElement = child.find('.//ig:Geom/ig:SURFACE/ig:BOUNDARY/ig:POLYLINE', namespaces=ns)
+                            if GeometryElement != None:
+                                f = QgsFeature()
+                                points = []
+                                for coord in GeometryElement.findall(interlisPrefix + 'COORD'):
+                                    x = coord.find(interlisPrefix + 'C1').text
+                                    y = coord.find(interlisPrefix + 'C2').text
+                                    floatx = float(x)
+                                    floaty = float(y)
+                                    print(floatx, floaty)
+                                    points.append(QgsPointXY(floatx, floaty))                            
+                                f.setGeometry(QgsGeometry.fromPolygonXY([points]))
                                 attributeList = [ErrorId]
                                 attributeList.extend(list(attributes.values()))
                                 # set Checked attribute to unchecked
