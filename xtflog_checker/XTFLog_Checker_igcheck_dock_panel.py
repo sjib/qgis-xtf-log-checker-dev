@@ -6,7 +6,7 @@
  Adapted from XTFLog_DockPanel for ilivalidator logs.
                              -------------------
         begin                : 2025-04-01 # Adjusted date
-        copyright            : (C) 2025 by GeoWerkstatt GmbH
+        copyright            : (C) 2025 by GeoWerkstatt GmbH & Stefan Jürg Burckhardt, Software, Informationsmanagement, Beratung (SJiB)
         email                : support@geowerkstatt.ch
  ***************************************************************************/
 
@@ -36,6 +36,12 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         super().__init__(parent)
         self.iface = iface
         self.setupUi(self)
+        #add checkboxes for infos
+        # self.checkBox_infos = QCheckBox()
+        # self.checkBox_infos.setText(QCoreApplication.translate('generals', 'Show infos'))
+        # self.checkBox_infos.setChecked(True)
+        # self.checkBox_infos.stateChanged.connect(self.evaluateCheckButtons)
+
         self.errorLayer = errorLayer
         QgsProject.instance().layerWillBeRemoved[str].connect(self.layersWillBeRemoved)
         self.checkBox_errors.stateChanged.connect(self.evaluateCheckButtons)
@@ -69,11 +75,11 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         message_idx = self.errorLayer.fields().indexOf('Description')
         self.listWidget.clear()
         if self.checkBox_errors.isChecked() and self.checkBox_warnings.isChecked():
-            expression = " \"Category\" =  \'error\' OR \"Category\" =  \'Warning\'"
+            expression = " \"Category\" =  \'error\' OR \"Category\" =  \'warning\'"
         elif self.checkBox_errors.isChecked():
             expression = "\"Category\" = \'error\'"
         elif self.checkBox_warnings.isChecked():
-            expression = "\"Category\" = \'Warning\'"
+            expression = "\"Category\" = \'warning\'"
         else:
             expression = ""
 

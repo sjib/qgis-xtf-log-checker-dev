@@ -7,7 +7,7 @@
                               -------------------
         begin                : 2021-07-13
         git sha              : $Format:%H$
-        copyright            : (C) 2025 by GeoWerkstatt GmbH
+        copyright            : (C) 2025 by GeoWerkstatt GmbH & Stefan Jürg Burckhardt, Software, Informationsmanagement, Beratung (SJiB)
         email                : support@geowerkstatt.ch
  ***************************************************************************/
 
@@ -97,48 +97,4 @@ class XTFLog_Checker:
         # Show the dialog
         self.dlg.show()
 
-    # def run(self):
-    # # 打开文件选择对话框
-    #     file_path, _ = QtWidgets.QFileDialog.getOpenFileName(None, 'Select XTF Log File', filter="*.xtf")
-    #     if not file_path:
-    #         return  # 如果用户未选择文件，直接返回
-
-    #     try:
-    #         # 解析 XML 文件，判断日志类型
-    #         tree = ET.parse(file_path)
-    #         root = tree.getroot()
-    #         ns = {'ili': 'http://www.interlis.ch/INTERLIS2.3'}
-    #         models_tag = root.find('.//ili:MODELS/ili:MODEL', namespaces=ns)
-
-    #         if models_tag is not None:
-    #             model_name = models_tag.get('NAME')
-    #             if model_name == 'IliVErrors':
-    #                 # 如果是 IliVErrors 类型，调用 XTFLog_CheckerDialog
-    #                 self.dlg = XTFLog_CheckerDialog(self.iface, file_path)
-    #                 self.dlg.show()
-    #             elif model_name == 'ErrorLog14':
-    #                 # 如果是 ErrorLog14 类型，调用 XTFLog_CheckerDialog_iG
-    #                 from .XTFLog_Checker_igcheck_dialog import XTFLog_CheckerDialog_iG
-    #                 self.dlg = XTFLog_CheckerDialog_iG(self.iface, file_path)
-    #                 self.dlg.show()
-    #             else:
-    #                 # 如果文件类型不支持，显示错误消息
-    #                 self.iface.messageBar().pushMessage(
-    #                     "Unsupported file type",
-    #                     f"File type '{model_name}' is not supported.",
-    #                     duration=8
-    #                 )
-    #         else:
-    #             # 如果无法确定文件类型，显示错误消息
-    #             self.iface.messageBar().pushMessage(
-    #                 "Invalid file",
-    #                 "Could not determine the file type.",
-    #                 duration=8
-    #             )
-    #     except ET.ParseError as e:
-    #         # 如果解析 XML 文件失败，显示错误消息
-    #         self.iface.messageBar().pushMessage(
-    #             "XML Parsing Error",
-    #             f"Error parsing the file: {e}",
-    #             duration=8
-    #         )
+    
