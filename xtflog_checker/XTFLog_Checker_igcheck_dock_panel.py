@@ -23,7 +23,7 @@
 import os
 
 from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem
+from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem, QCheckBox
 from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject,QgsWkbTypes
 from qgis.PyQt.QtCore import QCoreApplication
 
@@ -37,10 +37,10 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         self.iface = iface
         self.setupUi(self)
         #add checkboxes for infos
-        # self.checkBox_infos = QCheckBox()
-        # self.checkBox_infos.setText(QCoreApplication.translate('generals', 'Show infos'))
-        # self.checkBox_infos.setChecked(True)
-        # self.checkBox_infos.stateChanged.connect(self.evaluateCheckButtons)
+        self.checkBox_infos = QCheckBox()
+        self.checkBox_infos.setText(QCoreApplication.translate('generals', 'Show infos'))
+        self.checkBox_infos.setChecked(True)
+        self.checkBox_infos.stateChanged.connect(self.evaluateCheckButtons)
 
         self.errorLayer = errorLayer
         QgsProject.instance().layerWillBeRemoved[str].connect(self.layersWillBeRemoved)
@@ -49,6 +49,12 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         self.checkBox_errors.setEnabled(self.errorLayer != None)
         self.checkBox_errors.setText(QCoreApplication.translate('generals', 'Show errors'))
         self.checkBox_warnings.setText(QCoreApplication.translate('generals', 'Show warnings'))
+        parent_layout = self.verticalLayout
+        if parent_layout is not None:
+            parent_layout.insertWidget(
+                parent_layout.indexOf(self.checkBox_warnings) + 1,
+                self.checkBox_infos
+            )
         self.listWidget.itemSelectionChanged.connect(self.selectionChanged)
         self.listWidget.itemChanged.connect(self.updateItem)
         # change window title based on geometry type
@@ -69,17 +75,23 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         self.listWidget.clear()
         self.updateList()
 
+
     def updateList(self):
         self.isUpdating = True
         error_idx = self.errorLayer.fields().indexOf('ErrorId')
         message_idx = self.errorLayer.fields().indexOf('Description')
         self.listWidget.clear()
-        if self.checkBox_errors.isChecked() and self.checkBox_warnings.isChecked():
-            expression = " \"Category\" =  \'error\' OR \"Category\" =  \'warning\'"
-        elif self.checkBox_errors.isChecked():
-            expression = "\"Category\" = \'error\'"
-        elif self.checkBox_warnings.isChecked():
-            expression = "\"Category\" = \'warning\'"
+
+        expressions = []
+        if self.checkBox_errors.isChecked():
+            expressions.append("\"Category\" = 'error'")
+        if self.checkBox_warnings.isChecked():
+            expressions.append("\"Category\" = 'warning'")
+        if self.checkBox_infos.isChecked():
+            expressions.append("\"Category\" = 'info'")
+
+        if expressions:
+            expression = " OR ".join(expressions)
         else:
             expression = ""
 
@@ -90,6 +102,7 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
                 widgetItem = QListWidgetItem(listEntry, self.listWidget)
                 widgetItem.setCheckState(error_feat['Checked'])
         self.isUpdating = False
+
 
     def evaluateCheckButtons(self):
         self.updateList()

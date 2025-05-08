@@ -25,7 +25,7 @@ import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtCore import Qt, QMetaType,QCoreApplication
-from qgis.core import QgsVectorLayer, QgsField, QgsProject, QgsFeature, QgsGeometry, QgsPointXY, QgsEditorWidgetSetup, QgsMapLayerType
+from qgis.core import QgsVectorLayer, QgsField, QgsProject, QgsFeature, QgsGeometry, QgsPointXY, QgsEditorWidgetSetup, QgsMapLayerType,QgsMessageLog
 import requests
 import re
 import xml.etree.ElementTree as ET
@@ -283,7 +283,8 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             for attributeName in self.attributeNames:
                 element = child.find(interlisPrefix + attributeName)
                 attributes[attributeName] = (element.text if element is not None else "")
-            if attributes["Category"] not in ['error', 'warning']:
+
+            if attributes["Category"] not in ['error', 'warning','info']:
                 continue
 
             geom_element = child.find(interlisPrefix + 'Geom')
