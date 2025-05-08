@@ -75,14 +75,15 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
     def visualizeLog(self):
         path = self.txt_input.text()
         fileName = None
-        if(path.startswith("http")):
+        if(path.startswith("http")) or path.startswith("https"):
             try:
                 xml_string = requests.get(path).content.decode("utf-8")
                 if(len(xml_string)>5000000):
                     self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Large file'),  QCoreApplication.translate('generals', 'Processing of large XTF-Log files might take a while'), duration=8)
                     self.iface.mainWindow().repaint()
                 tree = ET.ElementTree(ET.fromstring(xml_string))
-                fileName = re.findall("connectionId=(.*?)&fileExtension=", path)[0] if len(re.findall("connectionId=(.*?)&fileExtension=", path))!=0 else None
+                fileName, _ = os.path.splitext(os.path.basename(path))
+
             except:
                 self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'Could not get a valid XTF-Log file from specified Url'), duration=8)
         else:
@@ -222,14 +223,14 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
         fileName = None
         tree = None
 
-        if path.startswith("http"):
+        if path.startswith("http") or path.startswith("https"):
             try:
                 xml_string = requests.get(path).content.decode("utf-8")
                 if len(xml_string) > 5000000:
                     self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Large file'), QCoreApplication.translate('generals', 'Processing of large XTF-Log files might take a while'), duration=8)
                     self.iface.mainWindow().repaint()
                 tree = ET.ElementTree(ET.fromstring(xml_string))
-                fileName = re.findall("connectionId=(.*?)&fileExtension=", path)[0] if re.findall("connectionId=(.*?)&fileExtension=", path) else None
+                fileName, _ = os.path.splitext(os.path.basename(path))
             except Exception as e:
                 self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'Could not get a valid XTF-Log file from specified Url'), duration=8)
                 return
