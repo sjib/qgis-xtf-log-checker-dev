@@ -303,6 +303,15 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             for attributeName in self.attributeNames:
                 element = child.find(interlisPrefix + attributeName)
                 attributes[attributeName] = (element.text if element is not None else "")
+            # add name and value for attributes
+            user_attributes = child.find(interlisPrefix + 'UserAttributes')
+            if user_attributes is not None:
+                for user_attr in user_attributes.findall(interlisPrefix + 'ErrorLog14.Errors.Attribute'):
+                    name_element = user_attr.find(interlisPrefix + 'Name')
+                    value_element = user_attr.find(interlisPrefix + 'Value')
+                    attributes['Name'] = name_element.text
+                    attributes['Value'] = value_element.text
+
 
             if attributes["Category"] not in ['error', 'warning','info']:
                 continue

@@ -80,8 +80,13 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
 
     def updateList(self):
         self.isUpdating = True
-        error_idx = self.errorLayer.fields().indexOf('ErrorId')
+        error_id_idx = self.errorLayer.fields().indexOf('ErrorId')
         message_idx = self.errorLayer.fields().indexOf('Description')
+        class_idx = self.errorLayer.fields().indexOf('Class')
+        tid_idx = self.errorLayer.fields().indexOf('Tid')
+        value_idx = self.errorLayer.fields().indexOf('Value')
+        name_idx = self.errorLayer.fields().indexOf('Name')
+
         self.listWidget.clear()
 
         expressions = []
@@ -100,9 +105,29 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         request = QgsFeatureRequest().setFilterExpression(expression)
         if self.errorLayer:
             for error_feat in self.errorLayer.getFeatures(request):
-                listEntry = error_feat.attributes()[error_idx] + " -- " + error_feat.attributes()[message_idx]
+                # listEntry = error_feat.attributes()[error_idx] + " -- " + error_feat.attributes()[message_idx]
+                # widgetItem = QListWidgetItem(listEntry, self.listWidget)
+                # widgetItem.setCheckState(error_feat['Checked'])
+                error_id = error_feat.attributes()[error_id_idx]
+                error_message = error_feat.attributes()[message_idx]
+
+                listEntry = f"{error_id} -- {error_message}"
                 widgetItem = QListWidgetItem(listEntry, self.listWidget)
                 widgetItem.setCheckState(error_feat['Checked'])
+
+                # Create the tooltip text 
+                tooltip_text = f"<b>Error ID:</b> {error_feat.attributes()[error_id_idx]}<br>"
+                tooltip_text += f"<b>Description:</b> {error_feat.attributes()[message_idx]}<br>"
+                if class_idx != -1 and error_feat.attributes()[class_idx]:
+                    tooltip_text += f"<b>Class:</b> {error_feat.attributes()[class_idx]}<br>"
+                if tid_idx != -1 and error_feat.attributes()[tid_idx]:
+                    tooltip_text += f"<b>Tid:</b> {error_feat.attributes()[tid_idx]}<br>"
+                if name_idx != -1 and error_feat.attributes()[name_idx]:
+                    tooltip_text += f"<b>Name:</b> {error_feat.attributes()[name_idx]}<br>"
+                if value_idx != -1 and error_feat.attributes()[value_idx]:
+                    tooltip_text += f"<b>Value:</b> {error_feat.attributes()[value_idx]}<br>"
+
+                widgetItem.setToolTip(tooltip_text)
         self.isUpdating = False
 
 
