@@ -23,7 +23,7 @@
 import os
 
 from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem, QCheckBox
+from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem, QCheckBox,QSizePolicy
 from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject,QgsWkbTypes
 from qgis.PyQt.QtCore import QCoreApplication
 
@@ -36,6 +36,8 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         super().__init__(parent)
         self.iface = iface
         self.setupUi(self)
+        #fix the panel too big problem because of long file name
+        self.layerName.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         #add checkboxes for infos
         self.checkBox_infos = QCheckBox()
         self.checkBox_infos.setText(QCoreApplication.translate('generals', 'Show infos'))
