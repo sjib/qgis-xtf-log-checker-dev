@@ -24,7 +24,7 @@
 import os
 
 from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem
+from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem,QSizePolicy
 from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject
 from qgis.PyQt.QtCore import QCoreApplication
 
@@ -37,6 +37,8 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
         super().__init__(parent)
         self.iface = iface
         self.setupUi(self)
+        #fix the panel too big problem because of long file name
+        self.layerName.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         self.errorLayer = errorLayer
         QgsProject.instance().layerWillBeRemoved[str].connect(self.layersWillBeRemoved)
         self.checkBox_errors.stateChanged.connect(self.evaluateCheckButtons)

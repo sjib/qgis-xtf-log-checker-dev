@@ -154,25 +154,41 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             for child in root.iter(interlisPrefix + 'IliVErrors.ErrorLog.Error'):
                 ErrorId = child.attrib["TID"]
                 attributes = {}
+                
+                # Extract all specified attributes from the error element
                 for attributeName in self.attributeNames:
                     element = child.find(interlisPrefix + attributeName)
-                    attributes[attributeName] = (element.text if element != None else "")
+                    attributes[attributeName] = (element.text if element is not None else "")
+                
+                # Process only 'Error' or 'Warning' types
                 if attributes["Type"] == 'Error' or attributes["Type"] == 'Warning':
+                    f = QgsFeature()
+                    
+                    # Try to extract geometry if available
                     GeometryElement = child.find(interlisPrefix + 'Geometry')
-                    if GeometryElement != None:
-                        Coordinate = GeometryElement.find(interlisPrefix + 'COORD');
-                        if Coordinate != None:
-                            f = QgsFeature()
-                            x = Coordinate.find(interlisPrefix + 'C1').text
-                            y = Coordinate.find(interlisPrefix + 'C2').text
-                            if(x and y):
-                                f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(x), float(y))))
-                            attributeList = [ErrorId]
-                            attributeList.extend(list(attributes.values()))
-                            # set Checked attribute to unchecked
-                            attributeList.append(0)
-                            f.setAttributes(attributeList)
-                            errorDataProvider.addFeature(f)
+                    if GeometryElement is not None:
+                        Coordinate = GeometryElement.find(interlisPrefix + 'COORD')
+                        if Coordinate is not None:
+                            x_elem = Coordinate.find(interlisPrefix + 'C1')
+                            y_elem = Coordinate.find(interlisPrefix + 'C2')
+                            if x_elem is not None and y_elem is not None:
+                                try:
+                                    x = float(x_elem.text)
+                                    y = float(y_elem.text)
+                                    # Set geometry as a point
+                                    f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(x, y)))
+                                except ValueError:
+                                    pass  # Ignore invalid coordinate values
+                    
+                    # Set attribute values, including a default 'Checked' column (set to 0)
+                    attributeList = [ErrorId]
+                    attributeList.extend(list(attributes.values()))
+                    attributeList.append(0)  # 0 means 'unchecked'
+                    f.setAttributes(attributeList)
+
+                    # Add feature to the data provider (layer)
+                    errorDataProvider.addFeature(f)
+
             if(errorLayer.featureCount()== 0):
                 QgsProject.instance().removeMapLayer(errorLayer)
                 self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', 'The selected XTF file contains no Ilivalidator-Errors, select another file.'), duration=8)
@@ -256,6 +272,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
         has_point = False
         has_line = False
         has_surface = False
+        has_nogeom = False
 
         for child in root.iter(interlisPrefix + 'ErrorLog14.Errors.Error'):
             geom_element = child.find(interlisPrefix + 'Geom')
@@ -267,6 +284,8 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                     has_line = True
                 elif LogType == 'SurfaceGeometry':
                     has_surface = True
+            else:
+                has_nogeom = True
 
         if not (has_point or has_line or has_surface):
             self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid geometry'), QCoreApplication.translate('generals', 'No Point, Line or Surface Geometries found.'), duration=8)
@@ -276,7 +295,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
         point_layer = create_error_layer(fileName + "_igChecker_Points", "Point") if has_point else None
         line_layer = create_error_layer(fileName + "_igChecker_Lines", "LineString") if has_line else None
         polygon_layer = create_error_layer(fileName + "_igChecker_Surfaces", "Polygon") if has_surface else None
-
+        no_geom_layer = create_error_layer(fileName + "_igChecker_NoGeometry", "None") if has_nogeom else None
         # Step 3: Insert features
         for child in root.iter(interlisPrefix + 'ErrorLog14.Errors.Error'):
             ErrorId = child.attrib["TID"]
@@ -289,7 +308,14 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 continue
 
             geom_element = child.find(interlisPrefix + 'Geom')
+
             if geom_element is None or len(geom_element) == 0:
+                if no_geom_layer:
+                    attributeList = [ErrorId]
+                    attributeList.extend(list(attributes.values()))
+                    attributeList.append(0)
+                    f.setAttributes(attributeList)
+                    no_geom_layer.dataProvider().addFeature(f)
                 continue
 
             LogType = geom_element[0].tag.split('.')[-1]
@@ -350,15 +376,20 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
         if polygon_layer and polygon_layer.featureCount() > 0:
             polygon_layer.updateExtents()
             QgsProject.instance().addMapLayer(polygon_layer)
+        if no_geom_layer and no_geom_layer.featureCount() > 0:
+            no_geom_layer.updateExtents()
+            QgsProject.instance().addMapLayer(no_geom_layer)
 
         if not ((point_layer and point_layer.featureCount() > 0) or
                 (line_layer and line_layer.featureCount() > 0) or
-                (polygon_layer and polygon_layer.featureCount() > 0)):
+                (polygon_layer and polygon_layer.featureCount() > 0) or
+                (no_geom_layer and no_geom_layer.featureCount() > 0)):
+            
             self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', 'The selected XTF file contains no igCheck-Errors, select another file.'), duration=8)
             return
 
         # optional: store last used layer
-        self.errorLayer = point_layer or line_layer or polygon_layer
+        self.errorLayer = point_layer or line_layer or polygon_layer or no_geom_layer
         if self.errorLayer:
             self.showDock()
         self.close()
