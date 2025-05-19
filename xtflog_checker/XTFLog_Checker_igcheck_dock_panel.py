@@ -1,23 +1,15 @@
 # -*- coding: utf-8 -*-
-"""
-/***************************************************************************
- XTFLog_igCheck_DockPanel
- A QGIS dock panel to interact with layers generated from igCheck logs.
- Adapted from XTFLog_DockPanel for ilivalidator logs.
-                             -------------------
-        begin                : 2025-04-01 # Adjusted date
-        copyright            : (C) 2025 by GeoWerkstatt GmbH & Stefan Jürg Burckhardt, Software, Informationsmanagement, Beratung (SJiB)
-        email                : support@geowerkstatt.ch
- ***************************************************************************/
+"""XTFLog_Checker
+A QGIS plugin to visualize XTF files of the IliVErrors and igChecker.
 
-/***************************************************************************
- * *
- * This program is free software; you can redistribute it and/or modify  *
- * it under the terms of the GNU General Public License as published by  *
- * the Free Software Foundation; either version 3 of the License, or     *
- * (at your option) any later version.                                   *
- * *
- ***************************************************************************/
+Begin: 2021-07-13
+Copyright: (C) 2025 by GeoWerkstatt GmbH & Stefan Jürg Burckhardt
+Email: support@geowerkstatt.ch
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
 """
 
 import os
