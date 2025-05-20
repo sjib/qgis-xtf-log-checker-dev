@@ -15,21 +15,27 @@ the Free Software Foundation; either version 3 of the License, or
 import os
 
 from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem,QSizePolicy
-from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject
+from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem, QCheckBox,QSizePolicy
+from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject,QgsWkbTypes
 from qgis.PyQt.QtCore import QCoreApplication
 
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ui/dock_panel.ui'))
 
-class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
+class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
     def __init__(self, iface, errorLayer, parent=None):
         super().__init__(parent)
         self.iface = iface
         self.setupUi(self)
         #fix the panel too big problem because of long file name
         self.layerName.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        #add checkboxes for infos
+        self.checkBox_infos = QCheckBox()
+        self.checkBox_infos.setText(QCoreApplication.translate('generals', 'Show infos'))
+        self.checkBox_infos.setChecked(True)
+        self.checkBox_infos.stateChanged.connect(self.evaluateCheckButtons)
+
         self.errorLayer = errorLayer
         QgsProject.instance().layerWillBeRemoved[str].connect(self.layersWillBeRemoved)
         self.checkBox_errors.stateChanged.connect(self.evaluateCheckButtons)
@@ -37,9 +43,24 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
         self.checkBox_errors.setEnabled(self.errorLayer != None)
         self.checkBox_errors.setText(QCoreApplication.translate('generals', 'Show errors'))
         self.checkBox_warnings.setText(QCoreApplication.translate('generals', 'Show warnings'))
+        parent_layout = self.verticalLayout
+        if parent_layout is not None:
+            parent_layout.insertWidget(
+                parent_layout.indexOf(self.checkBox_warnings) + 1,
+                self.checkBox_infos
+            )
         self.listWidget.itemSelectionChanged.connect(self.selectionChanged)
         self.listWidget.itemChanged.connect(self.updateItem)
-        self.setWindowTitle(QCoreApplication.translate('generals', 'Error log'))
+        # change window title based on geometry type
+        geometry_type = self.errorLayer.geometryType()
+        if geometry_type == QgsWkbTypes.PointGeometry:
+            self.setWindowTitle(QCoreApplication.translate('generals', 'igCheck - Point Errors'))
+        elif geometry_type == QgsWkbTypes.LineGeometry:
+            self.setWindowTitle(QCoreApplication.translate('generals', 'igCheck - Line Errors'))
+        elif geometry_type == QgsWkbTypes.PolygonGeometry:
+            self.setWindowTitle(QCoreApplication.translate('generals', 'igCheck - Surface Errors'))
+        else:
+            self.setWindowTitle(QCoreApplication.translate('generals', 'igCheck Error log'))
 
         if not self.errorLayer:
             return
@@ -48,27 +69,59 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
         self.listWidget.clear()
         self.updateList()
 
+
     def updateList(self):
         self.isUpdating = True
-        error_idx = self.errorLayer.fields().indexOf('ErrorId')
-        message_idx = self.errorLayer.fields().indexOf('Message')
+        error_id_idx = self.errorLayer.fields().indexOf('ErrorId')
+        message_idx = self.errorLayer.fields().indexOf('Description')
+        class_idx = self.errorLayer.fields().indexOf('Class')
+        tid_idx = self.errorLayer.fields().indexOf('Tid')
+        value_idx = self.errorLayer.fields().indexOf('Value')
+        name_idx = self.errorLayer.fields().indexOf('Name')
+
         self.listWidget.clear()
-        if self.checkBox_errors.isChecked() and self.checkBox_warnings.isChecked():
-            expression = " \"Type\" =  \'Error\' OR \"Type\" =  \'Warning\'"
-        elif self.checkBox_errors.isChecked():
-            expression = "\"Type\" = \'Error\'"
-        elif self.checkBox_warnings.isChecked():
-            expression = "\"Type\" = \'Warning\'"
+
+        expressions = []
+        if self.checkBox_errors.isChecked():
+            expressions.append("\"Category\" = 'error'")
+        if self.checkBox_warnings.isChecked():
+            expressions.append("\"Category\" = 'warning'")
+        if self.checkBox_infos.isChecked():
+            expressions.append("\"Category\" = 'info'")
+
+        if expressions:
+            expression = " OR ".join(expressions)
         else:
             expression = ""
 
         request = QgsFeatureRequest().setFilterExpression(expression)
         if self.errorLayer:
             for error_feat in self.errorLayer.getFeatures(request):
-                listEntry = error_feat.attributes()[error_idx] + " -- " + error_feat.attributes()[message_idx]
+                # listEntry = error_feat.attributes()[error_idx] + " -- " + error_feat.attributes()[message_idx]
+                # widgetItem = QListWidgetItem(listEntry, self.listWidget)
+                # widgetItem.setCheckState(error_feat['Checked'])
+                error_id = error_feat.attributes()[error_id_idx]
+                error_message = error_feat.attributes()[message_idx]
+
+                listEntry = f"{error_id} -- {error_message}"
                 widgetItem = QListWidgetItem(listEntry, self.listWidget)
                 widgetItem.setCheckState(error_feat['Checked'])
+
+                # Create the tooltip text 
+                tooltip_text = f"<b>Error ID:</b> {error_feat.attributes()[error_id_idx]}<br>"
+                tooltip_text += f"<b>Description:</b> {error_feat.attributes()[message_idx]}<br>"
+                if class_idx != -1 and error_feat.attributes()[class_idx]:
+                    tooltip_text += f"<b>Class:</b> {error_feat.attributes()[class_idx]}<br>"
+                if tid_idx != -1 and error_feat.attributes()[tid_idx]:
+                    tooltip_text += f"<b>Tid:</b> {error_feat.attributes()[tid_idx]}<br>"
+                if name_idx != -1 and error_feat.attributes()[name_idx]:
+                    tooltip_text += f"<b>Name:</b> {error_feat.attributes()[name_idx]}<br>"
+                if value_idx != -1 and error_feat.attributes()[value_idx]:
+                    tooltip_text += f"<b>Value:</b> {error_feat.attributes()[value_idx]}<br>"
+
+                widgetItem.setToolTip(tooltip_text)
         self.isUpdating = False
+
 
     def evaluateCheckButtons(self):
         self.updateList()
