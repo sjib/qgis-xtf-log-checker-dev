@@ -89,6 +89,8 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
 
         if fileName != None:
             root = tree.getroot()
+            
+            # Check if INTERLIS 2.3. Model
             ns = {'ili': 'http://www.interlis.ch/INTERLIS2.3'}
             models_tag = root.find('.//ili:MODELS/ili:MODEL', namespaces=ns)
             if models_tag is not None:
@@ -97,11 +99,33 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.visualizeLog_ig()
                     return
                 elif model_name != 'IliVErrors':
-                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported file'),
+                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported file AAA'),
                                                         QCoreApplication.translate('generals', f'Model {model_name} not supported.'), duration=8)
                     self.close()
                     return
-
+            # Check if INTERLIS 2.4. Model
+            # 3.7.2025 as interlis2.4 version will not find a models_tag
+            else:
+                # ns = {'ili': 'http://www.interlis.ch/INTERLIS2.4'}
+                ns = {'ili': 'http://www.interlis.ch/xtf/2.4/INTERLIS'}
+                # /ili:transfer/ili:headersection/ili:models/ili:model
+                models_tag = root.find('.//ili:models/ili:model', namespaces=ns)
+                if models_tag is not None:
+                    # model_name = models_tag.get('NAME')
+                    model_name = models_tag.get('name')
+                    if model_name == 'ErrorLog24':
+                        self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported error file version BBB'),
+                                                        QCoreApplication.translate('generals', f'Model {models_tag} / {model_name} not supported yet - please contact developer if you are interested to add support for this model format!'), duration=8)
+                        self.close()
+                        return
+                    else:
+                        self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported file CCC'),
+                                                        QCoreApplication.translate('generals', f'Could not distinguish model name {models_tag} - please contact developer if you are interested to have this added to the supported models.'), duration=8)
+                else:
+                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported file DDD'),
+                                                        QCoreApplication.translate('generals', f'Could not distinguish model name - please contact developer if you are interested to have this added to the supported models.'), duration=8)
+                self.close()
+                return
             x = None
             y = None
             errorLayer = QgsVectorLayer("Point?crs=epsg:2056", fileName + "_Ilivalidator_Errors", "memory")
