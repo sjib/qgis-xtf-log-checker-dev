@@ -17,6 +17,8 @@ from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
 from qgis.PyQt.QtCore import Qt, QMetaType,QCoreApplication
 from qgis.core import QgsVectorLayer, QgsField, QgsProject, QgsFeature, QgsGeometry, QgsPointXY, QgsEditorWidgetSetup, QgsMapLayerType,QgsMessageLog
+# 3.7.2025
+from qgis.core import Qgis
 import requests
 import re
 import xml.etree.ElementTree as ET
@@ -100,7 +102,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                     return
                 elif model_name != 'IliVErrors':
                     self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported file AAA'),
-                                                        QCoreApplication.translate('generals', f'Model {model_name} not supported.'), duration=8)
+                                                        QCoreApplication.translate('generals', f'Model {model_name} not supported.'), level=Qgis.Warning,)
                     self.close()
                     return
             # Check if INTERLIS 2.4. Model
@@ -115,15 +117,16 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                     model_name = models_tag.get('name')
                     if model_name == 'ErrorLog24':
                         self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported error file version BBB'),
-                                                        QCoreApplication.translate('generals', f'Model {models_tag} / {model_name} not supported yet - please contact developer if you are interested to add support for this model format!'), duration=8)
+                                                        QCoreApplication.translate('generals', f'Model {models_tag} / {model_name} not supported yet - please contact developer if you are interested to add support for this model format!'), level=Qgis.Warning)
                         self.close()
                         return
                     else:
+                        # iface.messageBar().pushMessage("Error", "I'm sorry Dave, I'm afraid I can't do that", level=Qgis.Warning)
                         self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported file CCC'),
-                                                        QCoreApplication.translate('generals', f'Could not distinguish model name {models_tag} - please contact developer if you are interested to have this added to the supported models.'), duration=8)
+                                                        QCoreApplication.translate('generals', f'Could not distinguish model name {models_tag} - please contact developer if you are interested to have this added to the supported models.'), level=Qgis.Warning)
                 else:
                     self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported file DDD'),
-                                                        QCoreApplication.translate('generals', f'Could not distinguish model name - please contact developer if you are interested to have this added to the supported models.'), duration=8)
+                                                        QCoreApplication.translate('generals', f'Could not distinguish model name - please contact developer if you are interested to have this added to the supported models.'), level=Qgis.Warning)
                 self.close()
                 return
             x = None
@@ -206,7 +209,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
 
             if(errorLayer.featureCount()== 0):
                 QgsProject.instance().removeMapLayer(errorLayer)
-                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', 'The selected XTF file contains no Ilivalidator-Errors, select another file.'), duration=8)
+                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', 'The selected XTF file contains no Ilivalidator-Errors, select another file.'), level=Qgis.Info, duration=8)
                 self.close()
                 return
 
@@ -263,17 +266,17 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 tree = ET.ElementTree(ET.fromstring(xml_string))
                 fileName, _ = os.path.splitext(os.path.basename(path))
             except Exception as e:
-                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'Could not get a valid XTF-Log file from specified Url'), duration=8)
+                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'Could not get a valid XTF-Log file from specified Url'), level=Qgis.Warning, duration=8)
                 return
         else:
             try:
                 if os.path.getsize(path) > 5000000:
-                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Large file'), QCoreApplication.translate('generals', 'Processing of large XTF-Log files might take a while'), duration=8)
+                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Large file'), QCoreApplication.translate('generals', 'Processing of large XTF-Log files might take a while'), level=Qgis.Info, duration=15)
                     self.iface.mainWindow().repaint()
                 tree = ET.parse(path)
                 fileName, _ = os.path.splitext(os.path.basename(path))
             except Exception as e:
-                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'No valid XTF-Log file at specified Path'), duration=8)
+                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'No valid XTF-Log file at specified Path'), level=Qgis.warning, duration=8)
                 return
 
         if fileName is None:
@@ -409,7 +412,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 (polygon_layer and polygon_layer.featureCount() > 0) or
                 (no_geom_layer and no_geom_layer.featureCount() > 0)):
             
-            self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', 'The selected XTF file contains no igCheck-Errors, select another file.'), duration=8)
+            self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', 'The selected XTF file contains no igCheck-Errors, select another file.'), level=Qgis.Info, duration=8)
             return
 
         # optional: store last used layer
