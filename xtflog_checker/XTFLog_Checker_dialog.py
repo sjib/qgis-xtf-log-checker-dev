@@ -101,8 +101,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.visualizeLog_ig()
                     return
                 elif model_name != 'IliVErrors':
-                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported file AAA'),
-                                                        QCoreApplication.translate('generals', f'Model {model_name} not supported.'), level=Qgis.Warning,)
+                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', f'Unsupported error file version , Model {model_name} not supported yet - please contact developer if you are interested to add support for this model format!'), level=Qgis.Warning)
                     self.close()
                     return
             # Check if INTERLIS 2.4. Model
