@@ -112,21 +112,20 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 ns = {'ili': 'http://www.interlis.ch/xtf/2.4/INTERLIS'}
                 # /ili:transfer/ili:headersection/ili:models/ili:model
                 models_tag = root.find('.//ili:models/ili:model', namespaces=ns)
+                models_senders = root.find('.//ili:sender', namespaces=ns)
                 if models_tag is not None:
                     # model_name = models_tag.get('NAME')
-                    model_name = models_tag.get('name')
-                    if model_name == 'ErrorLog24':
-                        self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported error file version BBB'),
-                                                        QCoreApplication.translate('generals', f'Model {models_tag} / {model_name} not supported yet - please contact developer if you are interested to add support for this model format!'), level=Qgis.Warning)
+                    model_name = models_tag.text
+                    model_sender = models_senders.text
+                    if model_sender == 'iG/Check':
+                        self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported error file version interlis2.4, ErrorLog24 iG/Check not supported yet - please contact developer if you are interested to add support for this model format!'), level=Qgis.Warning)
                         self.close()
                         return
-                    else:
+                    elif model_sender == 'IliVErrors':
                         # iface.messageBar().pushMessage("Error", "I'm sorry Dave, I'm afraid I can't do that", level=Qgis.Warning)
-                        self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported file CCC'),
-                                                        QCoreApplication.translate('generals', f'Could not distinguish model name {models_tag} - please contact developer if you are interested to have this added to the supported models.'), level=Qgis.Warning)
-                else:
-                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported file DDD'),
-                                                        QCoreApplication.translate('generals', f'Could not distinguish model name - please contact developer if you are interested to have this added to the supported models.'), level=Qgis.Warning)
+                        self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported error file version interlis2.4, ErrorLog24 IliVErrors not supported yet - please contact developer if you are interested to add support for this model format!'), level=Qgis.Warning)
+                    else:
+                        self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', f'Unsupported error file version interlis2.4, Model {model_name} / {model_sender} not supported yet - please contact developer if you are interested to add support for this model format!'), level=Qgis.Warning)
                 self.close()
                 return
             x = None
