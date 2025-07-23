@@ -553,28 +553,29 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                         point_layer.dataProvider().addFeature(f)
 
             elif LogType == 'LineGeometry' and line_layer:
-                polyline = child.find('.//ig:Geom/ig:POLYLINE', namespaces)
+                polyline = child.find('.//geom:polyline', namespaces)
                 if polyline is not None:
                     points = []
-                    for coord in polyline.findall(interlisPrefix + 'COORD'):
-                        x = coord.find(interlisPrefix + 'C1').text
-                        y = coord.find(interlisPrefix + 'C2').text
+                    for coord in polyline.findall('.//geom:coord',namespaces):
+                        x = coord.find('.//geom:c1',namespaces).text
+                        y = coord.find('.//geom:c2',namespaces).text
                         points.append(QgsPointXY(float(x), float(y)))
                     if points:
                         f.setGeometry(QgsGeometry.fromPolylineXY(points))
                         attributeList = [ErrorId]
+                        #self.iface.messageBar().pushMessage(ErrorId ,level=Qgis.Warning, duration=8)
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)
                         f.setAttributes(attributeList)
                         line_layer.dataProvider().addFeature(f)
 
             elif LogType == 'SurfaceGeometry' and polygon_layer:
-                polyline = child.find('.//ig:Geom/ig:SURFACE/ig:BOUNDARY/ig:POLYLINE', namespaces)
+                polyline = child.find('.//geom:surface', namespaces)
                 if polyline is not None:
                     points = []
-                    for coord in polyline.findall(interlisPrefix + 'COORD'):
-                        x = coord.find(interlisPrefix + 'C1').text
-                        y = coord.find(interlisPrefix + 'C2').text
+                    for coord in polyline.findall('.//geom:coord',namespaces):
+                        x = coord.find('.//geom:c1',namespaces).text
+                        y = coord.find('.//geom:c2',namespaces).text
                         points.append(QgsPointXY(float(x), float(y)))
                     if points:
                         f.setGeometry(QgsGeometry.fromPolygonXY([points]))
