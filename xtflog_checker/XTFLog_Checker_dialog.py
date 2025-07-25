@@ -335,6 +335,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
 
             geom_element = child.find(interlisPrefix + 'Geom')
             f = QgsFeature()
+
             if geom_element is None or len(geom_element) == 0:
                 if no_geom_layer:
                     attributeList = [ErrorId]
