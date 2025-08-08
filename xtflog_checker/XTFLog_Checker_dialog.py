@@ -117,8 +117,9 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                     model_name = models_tag.text
                     model_sender = models_senders.text
                     if model_sender == 'iG/Check':
-                        self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported error file version interlis2.4, ErrorLog24 iG/Check not supported yet - please contact developer if you are interested to add support for this model format!'), level=Qgis.Warning)
-                        self.close()
+                        self.visualizeLog24_ig()
+                        #self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Unsupported error file version interlis2.4, ErrorLog24 iG/Check not supported yet - please contact developer if you are interested to add support for this model format!'), level=Qgis.Warning)
+                        #self.close()
                         return
                     elif model_sender == 'IliVErrors':
                         # iface.messageBar().pushMessage("Error", "I'm sorry Dave, I'm afraid I can't do that", level=Qgis.Warning)
@@ -160,7 +161,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             errorLayer.setEditorWidgetSetup(error_idx, setup)
 
             # Remove layer if exists
-            existing_error_layer = QgsProject.instance().mapLayersByName("Ilivalidator_errors")
+            existing_error_layer = QgsProject.instance().mapLayersByName("Ilivalidator_Errors")
             if len(existing_error_layer) != 0:
                 QgsProject.instance().removeMapLayer(existing_error_layer[0])
 
@@ -274,7 +275,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 tree = ET.parse(path)
                 fileName, _ = os.path.splitext(os.path.basename(path))
             except Exception as e:
-                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'No valid XTF-Log file at specified Path'), level=Qgis.warning, duration=8)
+                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'No valid XTF-Log file at specified Path'), level=Qgis.Warning, duration=8)
                 return
 
         if fileName is None:
@@ -333,8 +334,6 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 continue
 
             geom_element = child.find(interlisPrefix + 'Geom')
-
-            # 16.7.2025 moved here
             f = QgsFeature()
 
             if geom_element is None or len(geom_element) == 0:
@@ -346,8 +345,8 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                     no_geom_layer.dataProvider().addFeature(f)
                 continue
 
-            LogType = geom_element[0].tag.split('.')[-1]
-            # f = QgsFeature()
+            LogType = geom_element[0].tag.split('.')[-1]      
+
 
             if LogType == 'PointGeometry' and point_layer:
                 coordinate = geom_element[0][0][0]
@@ -422,6 +421,203 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.showDock()
         self.close()
 
+    def visualizeLog24_ig(self):
+        def create_error_layer(layer_name, geometry_type):
+            layer = QgsVectorLayer(f"{geometry_type}?crs=epsg:2056", layer_name, "memory")
+            pr = layer.dataProvider()
+            pr.addAttributes([
+                QgsField("ErrorId", QMetaType.QString),
+                QgsField("Type", QMetaType.QString),
+                QgsField("Message", QMetaType.QString),
+                QgsField("Description", QMetaType.QString),
+                QgsField("Category", QMetaType.QString),
+                QgsField("Tid", QMetaType.QString),
+                QgsField("ObjTag", QMetaType.QString),
+                QgsField("Model", QMetaType.QString),
+                QgsField("TechId", QMetaType.QString),
+                QgsField("Topic", QMetaType.QString),
+                QgsField("UserId", QMetaType.QString),
+                QgsField("Class", QMetaType.QString),
+                QgsField("Name", QMetaType.QString),
+                QgsField("Value", QMetaType.QString),
+                QgsField("IliQName", QMetaType.QString),
+                QgsField("DataSource", QMetaType.QString),
+                QgsField("Line", QMetaType.QString),
+                QgsField("TechDetails", QMetaType.QString),
+                QgsField("Checked", QMetaType.Type.Int)
+            ])
+            layer.updateFields()
+            # Hide 'Checked' attribute
+            setup = QgsEditorWidgetSetup('Hidden', {})
+            idx = layer.fields().indexFromName('Checked')
+            layer.setEditorWidgetSetup(idx, setup)
+            return layer
+
+        path = self.txt_input.text()
+        fileName = None
+        tree = None
+
+        if path.startswith("http") or path.startswith("https"):
+            try:
+                xml_string = requests.get(path).content.decode("utf-8")
+                if len(xml_string) > 5000000:
+                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Large file'), QCoreApplication.translate('generals', 'Processing of large XTF-Log files might take a while'), duration=8)
+                    self.iface.mainWindow().repaint()
+                tree = ET.ElementTree(ET.fromstring(xml_string))
+                fileName, _ = os.path.splitext(os.path.basename(path))
+            except Exception as e:
+                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'Could not get a valid XTF-Log file from specified Url'), level=Qgis.Warning, duration=8)
+                return
+        else:
+            try:
+                if os.path.getsize(path) > 5000000:
+                    self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'Large file'), QCoreApplication.translate('generals', 'Processing of large XTF-Log files might take a while'), level=Qgis.Info, duration=15)
+                    self.iface.mainWindow().repaint()
+                tree = ET.parse(path)
+                fileName, _ = os.path.splitext(os.path.basename(path))
+            except Exception as e:
+                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'No valid XTF-Log file at specified Path'), level=Qgis.Warning, duration=8)
+                return
+
+        if fileName is None:
+            return
+
+        root = tree.getroot()
+        namespaces = {
+            'ili': 'http://www.interlis.ch/xtf/2.4/INTERLIS',
+            'geom': 'http://www.interlis.ch/geometry/1.0',
+            'default': 'http://www.infogrips.ch/INTERLIS/2.4/ErrorLog24'
+        }
+        interlisPrefix = '{http://www.infogrips.ch/INTERLIS/2.4/ErrorLog24}'
+        # Step 1: Detect which types exist
+        has_point = False
+        has_line = False
+        has_surface = False
+        has_nogeom = False
+
+        for child in root.iter(interlisPrefix +'Error'):
+            geom_element = child.find('.//default:Geom', namespaces)
+            if geom_element is None or len(geom_element) == 0:
+                has_nogeom = True
+                continue
+            
+            if geom_element is not None and len(geom_element) > 0:
+                LogType = child.find('.//default:Geom', namespaces)[0].tag.split('}')[1]
+                if LogType == 'PointGeometry':
+                    has_point = True
+                elif LogType == 'LineGeometry':
+                    has_line = True
+                elif LogType == 'SurfaceGeometry':
+                    has_surface = True
+            
+
+        if not (has_point or has_line or has_surface or has_nogeom):
+           self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid geometry or Errors'), QCoreApplication.translate('generals', 'No Point, Line or Surface Geometries found.'), duration=8)
+           return
+
+        # Step 2: Create layers
+        point_layer = create_error_layer(fileName + "_igChecker24_Points", "Point") if has_point else None
+        line_layer = create_error_layer(fileName + "_igChecker24_Lines", "LineString") if has_line else None
+        polygon_layer = create_error_layer(fileName + "_igChecker24_Surfaces", "Polygon") if has_surface else None
+        no_geom_layer = create_error_layer(fileName + "_igChecker24_NoGeometry", "None") if has_nogeom else None
+        
+        # Step 3: Insert features
+        for child in root.iter(interlisPrefix +'Error'):
+            ErrorId = child.attrib.get('{http://www.interlis.ch/xtf/2.4/INTERLIS}tid', '')
+            attributes = {}
+            for attributeName in self.attributeNames:
+                element = child.find( interlisPrefix + attributeName)
+                attributes[attributeName] = (element.text if element is not None else "")
+
+            if attributes["Category"] not in ['error', 'warning','info']:
+                continue
+            
+            
+            geom_element = child.find('.//default:Geom', namespaces)
+            f = QgsFeature()
+            if geom_element is None or len(geom_element) == 0:
+                if no_geom_layer:
+                    attributeList = [ErrorId]
+                    attributeList.extend(list(attributes.values()))
+                    attributeList.append(0)
+                    f.setAttributes(attributeList)
+                    no_geom_layer.dataProvider().addFeature(f)
+                continue
+
+            LogType = child.find('.//default:Geom', namespaces)[0].tag.split('}')[1]
+            if LogType == 'PointGeometry' and point_layer:
+                #coordinate = None
+                if geom_element is not None:
+                    x = child.find('.//geom:c1',namespaces).text
+                    y = child.find('.//geom:c2',namespaces).text
+                    if x and y:
+                        f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(x), float(y))))
+                        attributeList = [ErrorId]
+                        attributeList.extend(list(attributes.values()))
+                        attributeList.append(0)  # Checked
+                        f.setAttributes(attributeList)
+                        point_layer.dataProvider().addFeature(f)
+
+            elif LogType == 'LineGeometry' and line_layer:
+                polyline = child.find('.//geom:polyline', namespaces)
+                if polyline is not None:
+                    points = []
+                    for coord in polyline.findall('.//geom:coord',namespaces):
+                        x = coord.find('.//geom:c1',namespaces).text
+                        y = coord.find('.//geom:c2',namespaces).text
+                        points.append(QgsPointXY(float(x), float(y)))
+                    if points:
+                        f.setGeometry(QgsGeometry.fromPolylineXY(points))
+                        attributeList = [ErrorId]
+                        #self.iface.messageBar().pushMessage(ErrorId ,level=Qgis.Warning, duration=8)
+                        attributeList.extend(list(attributes.values()))
+                        attributeList.append(0)
+                        f.setAttributes(attributeList)
+                        line_layer.dataProvider().addFeature(f)
+
+            elif LogType == 'SurfaceGeometry' and polygon_layer:
+                polyline = child.find('.//geom:surface', namespaces)
+                if polyline is not None:
+                    points = []
+                    for coord in polyline.findall('.//geom:coord',namespaces):
+                        x = coord.find('.//geom:c1',namespaces).text
+                        y = coord.find('.//geom:c2',namespaces).text
+                        points.append(QgsPointXY(float(x), float(y)))
+                    if points:
+                        f.setGeometry(QgsGeometry.fromPolygonXY([points]))
+                        attributeList = [ErrorId]
+                        attributeList.extend(list(attributes.values()))
+                        attributeList.append(0)
+                        f.setAttributes(attributeList)
+                        polygon_layer.dataProvider().addFeature(f)
+
+        # Step 4: Add layers to project
+        if point_layer and point_layer.featureCount() > 0:
+            point_layer.updateExtents()
+            QgsProject.instance().addMapLayer(point_layer)
+        if line_layer and line_layer.featureCount() > 0:
+            line_layer.updateExtents()
+            QgsProject.instance().addMapLayer(line_layer)
+        if polygon_layer and polygon_layer.featureCount() > 0:
+            polygon_layer.updateExtents()
+            QgsProject.instance().addMapLayer(polygon_layer)
+        if no_geom_layer and no_geom_layer.featureCount() > 0:
+            no_geom_layer.updateExtents()
+            QgsProject.instance().addMapLayer(no_geom_layer)
+
+        if not ((point_layer and point_layer.featureCount() > 0) or
+                (line_layer and line_layer.featureCount() > 0) or
+                (polygon_layer and polygon_layer.featureCount() > 0) or
+                (no_geom_layer and no_geom_layer.featureCount() > 0)):
+            
+            self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', 'The selected XTF file contains no igCheck-Errors, select another file.'), level=Qgis.Info, duration=8)
+            return
+
+        # optional: store last used layer
+        self.errorLayer = point_layer or line_layer or polygon_layer or no_geom_layer
+        if self.errorLayer:
+            self.showDock()
+        self.close()
 
 
 
