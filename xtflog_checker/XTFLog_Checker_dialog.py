@@ -335,6 +335,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
 
             geom_element = child.find(interlisPrefix + 'Geom')
             f = QgsFeature()
+
             if geom_element is None or len(geom_element) == 0:
                 if no_geom_layer:
                     attributeList = [ErrorId]
@@ -345,6 +346,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 continue
 
             LogType = geom_element[0].tag.split('.')[-1]      
+
 
             if LogType == 'PointGeometry' and point_layer:
                 coordinate = geom_element[0][0][0]
