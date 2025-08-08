@@ -7,12 +7,15 @@ XTFLog-Checker is a [QGIS](https://www.qgis.org/en/site/) plugin that lets you d
 Install the [QGIS XTFLog-Checker](https://plugins.qgis.org/plugins) directly in QGIS by using the [Plugins menu](http://docs.qgis.org/latest/en/docs/user_manual/plugins/plugins.html).
 
 ## How to use
+
 Click on the XTFLog-Checker Icon ![Icon](xtflogchecker_icon.png)
 
 The following dialog will appear:
+
 ![Dialog](xtflogchecker_dialog.png)
 
 Select the error log xtf file you want to be visualized.
+
 ![Dialog - select file](xtflogchecker_dialog2.png)
 
 Click on 'Create Layer' - the error log will be analyzed and the results will be displayed.
@@ -22,6 +25,10 @@ Click on 'Create Layer' - the error log will be analyzed and the results will be
 ![Ilivalidator](xtflogchecker_ilivalidator_errors.png)
 
 All Errors are displayed on the same layer. The latest version also supports the display of Errors without an assigned geometry. 
+
+The following INTERLIS Error log versions are supported:
+https://models.interlis.ch/tools/IliVErrors.ili (Interlis 2.3)
+A versin for 2.4. does not exist (yet).
 
 ### iG/Check
 
@@ -33,6 +40,10 @@ Since Release 1.1.0 also iG/Check Errors logs are supported. For each Geometry t
    * Points
    * Lines
    * Surfaces
+
+The following INTERLIS Error log versions are supported: 
+https://www.infogrips.ch/models/2.3/ErrorLog14.ili (since release 1.1.0)
+and https://www.infogrips.ch/models/2.4/ErrorLog24.ili (since release 1.2.0)
 
 ### Change layer
 
@@ -61,4 +72,5 @@ Further details you get by opening the attribute table of the respective layer
 
 ## License
 The XTFLog-Checker plugin is licensed under the [GPL-3.0 license](LICENSE).  
-Copyright © 2025 [GeoWerkstatt GmbH](https://www.geowerkstatt.ch) & [Stefan Jürg Burckhardt, Software, Informationsmanagement, Beratung (SJiB)](https://www.sjib.ch/)
+Copyright © 2025
+[GeoWerkstatt GmbH](https://www.geowerkstatt.ch) & [Stefan Jürg Burckhardt, Software, Informationsmanagement, Beratung (SJiB)](https://www.sjib.ch/)
