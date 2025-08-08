@@ -27,8 +27,7 @@ Click on 'Create Layer' - the error log will be analyzed and the results will be
 All Errors are displayed on the same layer. The latest version also supports the display of Errors without an assigned geometry. 
 
 The following INTERLIS Error log versions are supported:
-https://models.interlis.ch/tools/IliVErrors.ili (Interlis 2.3)
-A versin for 2.4. does not exist (yet).
+https://models.interlis.ch/tools/IliVErrors.ili (Interlis 2.3). A version for INTERLIS 2.4. does not exist (yet).
 
 ### iG/Check
 
@@ -50,11 +49,13 @@ and https://www.infogrips.ch/models/2.4/ErrorLog24.ili (since release 1.2.0)
 Click on the XTFLog-Checker Icon ![Icon](xtflogchecker_icon.png) again
 
 In the following dialog choose the layer you want to be displayed:
+
 ![Change layer](xtflogchecker_dialog_change_layer.png)
 
 ### Filter errors by category
 
-You can filter the errors by their categories: [errors, warnings, info]
+You can filter the errors by their categories: [errors, warnings, info]:
+
 ![Filter](xtflogchecker_filter_error_warning.png)
 
 ![Filter Info](xtflogchecker_filter_info.png)
