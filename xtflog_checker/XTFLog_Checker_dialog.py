@@ -161,7 +161,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             errorLayer.setEditorWidgetSetup(error_idx, setup)
 
             # Remove layer if exists
-            existing_error_layer = QgsProject.instance().mapLayersByName("Ilivalidator_errors")
+            existing_error_layer = QgsProject.instance().mapLayersByName("Ilivalidator_Errors")
             if len(existing_error_layer) != 0:
                 QgsProject.instance().removeMapLayer(existing_error_layer[0])
 
@@ -275,7 +275,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 tree = ET.parse(path)
                 fileName, _ = os.path.splitext(os.path.basename(path))
             except Exception as e:
-                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'No valid XTF-Log file at specified Path'), level=Qgis.warning, duration=8)
+                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'No valid XTF-Log file at specified Path'), level=Qgis.Warning, duration=8)
                 return
 
         if fileName is None:
@@ -305,7 +305,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 has_nogeom = True
 
         if not (has_point or has_line or has_surface):
-            self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid geometry'), QCoreApplication.translate('generals', '11No Point, Line or Surface Geometries found.'), duration=8)
+            self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid geometry'), QCoreApplication.translate('generals', 'No Point, Line or Surface Geometries found.'), duration=8)
             return
 
         # Step 2: Create layers
@@ -474,7 +474,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 tree = ET.parse(path)
                 fileName, _ = os.path.splitext(os.path.basename(path))
             except Exception as e:
-                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'No valid XTF-Log file at specified Path'), level=Qgis.warning, duration=8)
+                self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid file'), QCoreApplication.translate('generals', 'No valid XTF-Log file at specified Path'), level=Qgis.Warning, duration=8)
                 return
 
         if fileName is None:
@@ -494,19 +494,23 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
         has_nogeom = False
 
         for child in root.iter(interlisPrefix +'Error'):
-            LogType = child.find('.//default:Geom', namespaces)[0].tag.split('}')[1]
-            if LogType is not None and len(LogType) > 0:
+            geom_element = child.find('.//default:Geom', namespaces)
+            if geom_element is None or len(geom_element) == 0:
+                has_nogeom = True
+                continue
+            
+            if geom_element is not None and len(geom_element) > 0:
+                LogType = child.find('.//default:Geom', namespaces)[0].tag.split('}')[1]
                 if LogType == 'PointGeometry':
                     has_point = True
                 elif LogType == 'LineGeometry':
                     has_line = True
                 elif LogType == 'SurfaceGeometry':
                     has_surface = True
-            else:
-                has_nogeom = True
+            
 
-        if not (has_point or has_line or has_surface):
-           self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid geometry'), QCoreApplication.translate('generals', 'No Point, Line or Surface Geometries found.'), duration=8)
+        if not (has_point or has_line or has_surface or has_nogeom):
+           self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No valid geometry or Errors'), QCoreApplication.translate('generals', 'No Point, Line or Surface Geometries found.'), duration=8)
            return
 
         # Step 2: Create layers
@@ -604,7 +608,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 (polygon_layer and polygon_layer.featureCount() > 0) or
                 (no_geom_layer and no_geom_layer.featureCount() > 0)):
             
-            self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', '33The selected XTF file contains no igCheck-Errors, select another file.'), level=Qgis.Info, duration=8)
+            self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', 'The selected XTF file contains no igCheck-Errors, select another file.'), level=Qgis.Info, duration=8)
             return
 
         # optional: store last used layer
