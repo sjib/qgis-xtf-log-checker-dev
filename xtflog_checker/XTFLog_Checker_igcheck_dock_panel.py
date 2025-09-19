@@ -102,8 +102,9 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
                 # widgetItem.setCheckState(error_feat['Checked'])
                 error_id = error_feat.attributes()[error_id_idx]
                 error_message = error_feat.attributes()[message_idx]
+                error_id = error_feat.attributes()[error_id_idx]
 
-                listEntry = f"{error_id} -- {error_message}"
+                listEntry = f"{error_id} -- {error_message} ({error_id})"
                 widgetItem = QListWidgetItem(listEntry, self.listWidget)
                 widgetItem.setCheckState(error_feat['Checked'])
 
