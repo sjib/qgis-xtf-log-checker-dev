@@ -72,8 +72,12 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
 
     def updateList(self):
         self.isUpdating = True
+        TID_idx = self.errorLayer.fields().indexOf('TID')
         error_id_idx = self.errorLayer.fields().indexOf('ErrorId')
         message_idx = self.errorLayer.fields().indexOf('Description')
+        Module_idx = self.errorLayer.fields().indexOf('Module')
+        Model_idx = self.errorLayer.fields().indexOf('Model')
+        Topic_idx = self.errorLayer.fields().indexOf('Topic')
         class_idx = self.errorLayer.fields().indexOf('Class')
         tid_idx = self.errorLayer.fields().indexOf('Tid')
         value_idx = self.errorLayer.fields().indexOf('Value')
@@ -102,15 +106,20 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
                 # widgetItem.setCheckState(error_feat['Checked'])
                 error_id = error_feat.attributes()[error_id_idx]
                 error_message = error_feat.attributes()[message_idx]
-                error_id = error_feat.attributes()[error_id_idx]
+                TID_value = error_feat.attributes()[TID_idx]
 
-                listEntry = f"{error_id} -- {error_message} ({error_id})"
+
+                listEntry = f"{TID_value} -- {error_message} ({error_id})"
                 widgetItem = QListWidgetItem(listEntry, self.listWidget)
                 widgetItem.setCheckState(error_feat['Checked'])
 
                 # Create the tooltip text 
-                tooltip_text = f"<b>Error ID:</b> {error_feat.attributes()[error_id_idx]}<br>"
+                tooltip_text = f"<b>Module:</b> {error_feat.attributes()[Module_idx]}<br>"
+                tooltip_text += f"<b>Error ID:</b> {error_feat.attributes()[error_id_idx]}<br>"
+                tooltip_text += f"<b>Model:</b> {error_feat.attributes()[Model_idx]}<br>"
                 tooltip_text += f"<b>Description:</b> {error_feat.attributes()[message_idx]}<br>"
+                tooltip_text += f"<b>Topic:</b> {error_feat.attributes()[Topic_idx]}<br>"
+                
                 if class_idx != -1 and error_feat.attributes()[class_idx]:
                     tooltip_text += f"<b>Class:</b> {error_feat.attributes()[class_idx]}<br>"
                 if tid_idx != -1 and error_feat.attributes()[tid_idx]:
@@ -131,7 +140,7 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         if not self.listWidget.selectedItems():
             return
         selectedErrorId = self.listWidget.selectedItems()[0].text().split(" -- ")[0]
-        expression = " \"ErrorId\" = '{}' ".format(selectedErrorId)
+        expression = " \"TID\" = '{}' ".format(selectedErrorId)
         try:
             self.errorLayer.selectByExpression(expression, QgsVectorLayer.SetSelection)
             self.iface.mapCanvas().zoomToSelected(self.errorLayer)
@@ -151,7 +160,7 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
 
     def setFeatureCheckState(self, layer, item):
         selectedErrorId = item.text().split(" -- ")[0]
-        expression = " \"ErrorId\" = '{}' ".format(selectedErrorId)
+        expression = " \"TID\" = '{}' ".format(selectedErrorId)
         request = QgsFeatureRequest().setFilterExpression(expression)
         features = layer.getFeatures()
         field_idx = layer.fields().indexOf('Checked')

@@ -50,7 +50,7 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
 
     def updateList(self):
         self.isUpdating = True
-        error_idx = self.errorLayer.fields().indexOf('ErrorId')
+        TID_idx = self.errorLayer.fields().indexOf('TID')
         message_idx = self.errorLayer.fields().indexOf('Message')
         self.listWidget.clear()
         if self.checkBox_errors.isChecked() and self.checkBox_warnings.isChecked():
@@ -65,7 +65,7 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
         request = QgsFeatureRequest().setFilterExpression(expression)
         if self.errorLayer:
             for error_feat in self.errorLayer.getFeatures(request):
-                listEntry = error_feat.attributes()[error_idx] + " -- " + error_feat.attributes()[message_idx]
+                listEntry = error_feat.attributes()[TID_idx] + " -- " + error_feat.attributes()[message_idx]
                 widgetItem = QListWidgetItem(listEntry, self.listWidget)
                 widgetItem.setCheckState(error_feat['Checked'])
         self.isUpdating = False
@@ -77,14 +77,17 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
         if not self.listWidget.selectedItems():
             return
         selectedErrorId = self.listWidget.selectedItems()[0].text().split(" -- ")[0]
-        expression = " \"ErrorId\" = '{}' ".format(selectedErrorId)
+        expression = " \"TID\" = '{}' ".format(selectedErrorId)
         try:
-            self.errorLayer.selectByExpression(expression, QgsVectorLayer.SetSelection)
-            self.iface.mapCanvas().zoomToSelected(self.errorLayer)
+            # Get the feature (only one per TID)
             request = QgsFeatureRequest().setFilterExpression(expression)
-            features = self.errorLayer.getFeatures(request)
-            for feature in features:
+            feature = next(self.errorLayer.getFeatures(request), None)
+
+            # Only flash if the feature has geometry
+            if feature is not None and feature.geometry() is not None:
                 self.iface.mapCanvas().flashGeometries([feature.geometry()])
+            # Do NOT call zoomToSelected if geometry is None
+
         except:
             print("Could not select anything")
 
@@ -97,7 +100,7 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
 
     def setFeatureCheckState(self, layer, item):
         selectedErrorId = item.text().split(" -- ")[0]
-        expression = " \"ErrorId\" = '{}' ".format(selectedErrorId)
+        expression = " \"TID\" = '{}' ".format(selectedErrorId)
         request = QgsFeatureRequest().setFilterExpression(expression)
         features = layer.getFeatures()
         field_idx = layer.fields().indexOf('Checked')
