@@ -13,11 +13,13 @@ the Free Software Foundation; either version 3 of the License, or
 """
 
 import os
-
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem, QCheckBox,QSizePolicy
 from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject,QgsWkbTypes
 from qgis.PyQt.QtCore import QCoreApplication
+from PyQt5.QtWidgets import QComboBox
+from PyQt5.QtWidgets import QHBoxLayout, QLabel
+from PyQt5.QtCore import Qt
 
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -28,13 +30,60 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         super().__init__(parent)
         self.iface = iface
         self.setupUi(self)
+
         #fix the panel too big problem because of long file name
         self.layerName.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
-        #add checkboxes for infos
+        # add checkbox for infos
         self.checkBox_infos = QCheckBox()
         self.checkBox_infos.setText(QCoreApplication.translate('generals', 'Show infos'))
         self.checkBox_infos.setChecked(True)
         self.checkBox_infos.stateChanged.connect(self.evaluateCheckButtons)
+
+        parent_layout = self.verticalLayout
+        if parent_layout is not None:
+            # insert infos checkbox right after the warnings checkbox
+            parent_layout.insertWidget(
+                parent_layout.indexOf(self.checkBox_warnings) + 1,
+                self.checkBox_infos
+            )
+
+        # add combobox for class filter
+        # horizontal layout for advanced filters
+        self.filterLayout = QHBoxLayout()
+        self.filterLayout.setSpacing(4)
+        self.filterLayout.setAlignment(Qt.AlignLeft)
+
+        # label + field combobox
+        self.label_field = QLabel("Field:")
+        self.label_field.setMaximumWidth(50)
+        self.comboBox_field = QComboBox()
+        self.comboBox_field.addItems(["All", "Class", "Tid", "Topic"])
+        self.comboBox_field.setMaximumWidth(70)  
+
+        # label + value combobox
+        self.label_value = QLabel("Value:")
+        self.label_value.setMaximumWidth(50)
+        self.comboBox_value = QComboBox()
+        self.comboBox_value.addItem("All")
+        self.comboBox_value.setMinimumWidth(150)
+
+        # add widgets to horizontal layout
+        self.filterLayout.addWidget(self.label_field)
+        self.filterLayout.addWidget(self.comboBox_field)
+        self.filterLayout.addWidget(self.label_value)
+        self.filterLayout.addWidget(self.comboBox_value)
+
+        # insert the horizontal layout below infos checkbox
+        parent_layout = self.verticalLayout
+        if parent_layout is not None:
+            parent_layout.insertLayout(
+                parent_layout.indexOf(self.checkBox_infos) + 1,
+                self.filterLayout
+            )
+
+        # connect signals
+        self.comboBox_field.currentIndexChanged.connect(self.updateValueCombo)
+        self.comboBox_value.currentIndexChanged.connect(self.updateList)
 
         self.errorLayer = errorLayer
         QgsProject.instance().layerWillBeRemoved[str].connect(self.layersWillBeRemoved)
@@ -93,10 +142,30 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         if self.checkBox_infos.isChecked():
             expressions.append("\"Category\" = 'info'")
 
+        # combine category filters
         if expressions:
             expression = " OR ".join(expressions)
         else:
             expression = ""
+
+        # handle field + value filter
+        selected_field = self.comboBox_field.currentText()
+        selected_value = self.comboBox_value.currentText()
+
+        if selected_field != "All" and selected_value and selected_value != "All":
+            field_idx = self.errorLayer.fields().indexOf(selected_field)
+            if field_idx != -1:
+                field_expr = f"\"{selected_field}\" = '{selected_value}'"
+                if expression:
+                    expression = f"({expression}) AND {field_expr}"
+                else:
+                    expression = field_expr
+
+        # now apply expression to layer
+        if expression:
+            self.errorLayer.selectByExpression(expression, QgsVectorLayer.SetSelection)
+        else:
+            self.errorLayer.removeSelection()
 
         request = QgsFeatureRequest().setFilterExpression(expression)
         if self.errorLayer:
@@ -107,14 +176,13 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
                 error_id = error_feat.attributes()[error_id_idx]
                 error_message = error_feat.attributes()[message_idx]
                 TID_value = error_feat.attributes()[TID_idx]
-
-
                 listEntry = f"{TID_value} -- {error_message} ({error_id})"
                 widgetItem = QListWidgetItem(listEntry, self.listWidget)
                 widgetItem.setCheckState(error_feat['Checked'])
 
-                # Create the tooltip text 
-                tooltip_text = f"<b>Module:</b> {error_feat.attributes()[Module_idx]}<br>"
+                # Create the tooltip text
+                tooltip_text = f"<b>TID:</b> {error_feat.attributes()[TID_idx]}<br>" 
+                tooltip_text += f"<b>Module:</b> {error_feat.attributes()[Module_idx]}<br>"
                 tooltip_text += f"<b>Error ID:</b> {error_feat.attributes()[error_id_idx]}<br>"
                 tooltip_text += f"<b>Model:</b> {error_feat.attributes()[Model_idx]}<br>"
                 tooltip_text += f"<b>Description:</b> {error_feat.attributes()[message_idx]}<br>"
@@ -131,6 +199,33 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
 
                 widgetItem.setToolTip(tooltip_text)
         self.isUpdating = False
+
+
+    def updateValueCombo(self):
+        if not self.errorLayer:
+            return
+        # clear old values
+        self.comboBox_value.clear()
+        self.comboBox_value.addItem("All")  # default option
+        # get selected field
+        selected_field = self.comboBox_field.currentText()
+        # "All" means no filtering, so keep only "All"
+        if selected_field == "All":
+            return
+        # check if field exists in layer
+        field_idx = self.errorLayer.fields().indexOf(selected_field)
+        if field_idx == -1:
+            return
+        # collect unique values for the chosen field
+        unique_vals = set()
+        for feat in self.errorLayer.getFeatures():
+            val = feat.attributes()[field_idx]
+            if val:
+                unique_vals.add(str(val))
+        # add them to value combobox
+        for v in sorted(unique_vals):
+            self.comboBox_value.addItem(v)
+
 
 
     def evaluateCheckButtons(self):
