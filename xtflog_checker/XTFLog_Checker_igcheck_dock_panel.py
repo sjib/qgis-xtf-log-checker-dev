@@ -57,8 +57,8 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         self.label_field = QLabel("Field:")
         self.label_field.setMaximumWidth(50)
         self.comboBox_field = QComboBox()
-        self.comboBox_field.addItems(["All", "Class", "Tid", "Topic"])
-        self.comboBox_field.setMaximumWidth(70)  
+        self.comboBox_field.addItems(["All", "Class", "Tid", "Topic","ErrorId","Description"])
+        self.comboBox_field.setMaximumWidth(100)  
 
         # label + value combobox
         self.label_value = QLabel("Value:")
@@ -199,6 +199,12 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
 
                 widgetItem.setToolTip(tooltip_text)
         self.isUpdating = False
+
+        sender = self.sender()
+        if isinstance(sender, QComboBox):  # only when combobox triggered
+            if self.listWidget.count() > 0:
+                self.listWidget.setCurrentRow(0)
+    
 
 
     def updateValueCombo(self):
