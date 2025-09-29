@@ -39,7 +39,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.btn_run.setEnabled(file_path != None)
         self.btn_cancel.clicked.connect(self.closePlugin)
         self.btn_cancel.setText(QCoreApplication.translate('generals', 'Cancel'))
-        self.attributeNames = ["Type", "Message","Description","Category", "Tid", "ObjTag","Model", "TechId","Topic", "UserId","Class","Name","Value", "IliQName", "DataSource", "Line", "TechDetails"]
+        self.attributeNames = ["ErrorId","Type","Message","Description","Category","Tid","ObjTag","Model","TechId","Topic","UserId","Class","Name","Value","IliQName","DataSource","Line","TechDetails","Module"]
         self.btn_show_error_log.clicked.connect(self.showErrorLog)
         self.btn_show_error_log.setText(QCoreApplication.translate('generals', 'Show error log'))
         self.newLayerGroupBox.setTitle(QCoreApplication.translate('generals', 'Upload xtf-log file'))
@@ -133,7 +133,8 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             errorLayer = QgsVectorLayer("Point?crs=epsg:2056", fileName + "_Ilivalidator_Errors", "memory")
             errorDataProvider = errorLayer.dataProvider()
 
-            errorDataProvider.addAttributes([QgsField("ErrorId", QMetaType.QString),
+            errorDataProvider.addAttributes([QgsField("TID", QMetaType.QString),
+                                            QgsField("ErrorId", QMetaType.QString),
                                             QgsField("Type", QMetaType.QString),
                                             QgsField("Message", QMetaType.QString),
                                             QgsField("Description", QMetaType.QString),
@@ -151,6 +152,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                                             QgsField("DataSource", QMetaType.QString),
                                             QgsField("Line", QMetaType.QString),
                                             QgsField("TechDetails", QMetaType.QString),
+                                            QgsField("Module", QMetaType.QString),
                                             QgsField("Checked", QMetaType.Type.Int)])
 
             errorLayer.updateFields()
@@ -169,7 +171,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
 
             interlisPrefix = '{http://www.interlis.ch/INTERLIS2.3}'
             for child in root.iter(interlisPrefix + 'IliVErrors.ErrorLog.Error'):
-                ErrorId = child.attrib["TID"]
+                TID = child.attrib["TID"]
                 attributes = {}
                 
                 # Extract all specified attributes from the error element
@@ -198,7 +200,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                                     pass  # Ignore invalid coordinate values
                     
                     # Set attribute values, including a default 'Checked' column (set to 0)
-                    attributeList = [ErrorId]
+                    attributeList = [TID]
                     attributeList.extend(list(attributes.values()))
                     attributeList.append(0)  # 0 means 'unchecked'
                     f.setAttributes(attributeList)
@@ -225,6 +227,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             layer = QgsVectorLayer(f"{geometry_type}?crs=epsg:2056", layer_name, "memory")
             pr = layer.dataProvider()
             pr.addAttributes([
+                QgsField("TID", QMetaType.QString),
                 QgsField("ErrorId", QMetaType.QString),
                 QgsField("Type", QMetaType.QString),
                 QgsField("Message", QMetaType.QString),
@@ -243,6 +246,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 QgsField("DataSource", QMetaType.QString),
                 QgsField("Line", QMetaType.QString),
                 QgsField("TechDetails", QMetaType.QString),
+                QgsField("Module", QMetaType.QString),
                 QgsField("Checked", QMetaType.Type.Int)
             ])
             layer.updateFields()
@@ -315,19 +319,25 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
         no_geom_layer = create_error_layer(fileName + "_igChecker_NoGeometry", "None") if has_nogeom else None
         # Step 3: Insert features
         for child in root.iter(interlisPrefix + 'ErrorLog14.Errors.Error'):
-            ErrorId = child.attrib["TID"]
+            TID = child.attrib["TID"]
             attributes = {}
             for attributeName in self.attributeNames:
                 element = child.find(interlisPrefix + attributeName)
                 attributes[attributeName] = (element.text if element is not None else "")
             # add name and value for attributes
             user_attributes = child.find(interlisPrefix + 'UserAttributes')
+
             if user_attributes is not None:
+                names = []
+                values = []
                 for user_attr in user_attributes.findall(interlisPrefix + 'ErrorLog14.Errors.Attribute'):
                     name_element = user_attr.find(interlisPrefix + 'Name')
                     value_element = user_attr.find(interlisPrefix + 'Value')
-                    attributes['Name'] = name_element.text
-                    attributes['Value'] = value_element.text
+                    names.append(name_element.text)
+                    values.append(value_element.text)
+                    attributes['Name'] = "; ".join(names)
+                    attributes['Value'] = "; ".join(values)
+
 
 
             if attributes["Category"] not in ['error', 'warning','info']:
@@ -338,7 +348,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
 
             if geom_element is None or len(geom_element) == 0:
                 if no_geom_layer:
-                    attributeList = [ErrorId]
+                    attributeList = [TID]
                     attributeList.extend(list(attributes.values()))
                     attributeList.append(0)
                     f.setAttributes(attributeList)
@@ -355,7 +365,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                     y = coordinate.find(interlisPrefix + 'C2').text
                     if x and y:
                         f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(x), float(y))))
-                        attributeList = [ErrorId]
+                        attributeList = [TID]
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)  # Checked
                         f.setAttributes(attributeList)
@@ -371,7 +381,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                         points.append(QgsPointXY(float(x), float(y)))
                     if points:
                         f.setGeometry(QgsGeometry.fromPolylineXY(points))
-                        attributeList = [ErrorId]
+                        attributeList = [TID]
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)
                         f.setAttributes(attributeList)
@@ -387,7 +397,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                         points.append(QgsPointXY(float(x), float(y)))
                     if points:
                         f.setGeometry(QgsGeometry.fromPolygonXY([points]))
-                        attributeList = [ErrorId]
+                        attributeList = [TID]
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)
                         f.setAttributes(attributeList)
@@ -412,7 +422,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 (polygon_layer and polygon_layer.featureCount() > 0) or
                 (no_geom_layer and no_geom_layer.featureCount() > 0)):
             
-            self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', 'The selected XTF file contains no igCheck-Errors, select another file.'), level=Qgis.Info, duration=8)
+            self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', '1The selected XTF file contains no igCheck-Errors, select another file.'), level=Qgis.Info, duration=8)
             return
 
         # optional: store last used layer
@@ -426,6 +436,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             layer = QgsVectorLayer(f"{geometry_type}?crs=epsg:2056", layer_name, "memory")
             pr = layer.dataProvider()
             pr.addAttributes([
+                QgsField("TID", QMetaType.QString),
                 QgsField("ErrorId", QMetaType.QString),
                 QgsField("Type", QMetaType.QString),
                 QgsField("Message", QMetaType.QString),
@@ -444,6 +455,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 QgsField("DataSource", QMetaType.QString),
                 QgsField("Line", QMetaType.QString),
                 QgsField("TechDetails", QMetaType.QString),
+                QgsField("Module", QMetaType.QString),
                 QgsField("Checked", QMetaType.Type.Int)
             ])
             layer.updateFields()
@@ -523,7 +535,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
         
         # Step 3: Insert features
         for child in root.iter(interlisPrefix +'Error'):
-            ErrorId = child.attrib.get('{http://www.interlis.ch/xtf/2.4/INTERLIS}tid', '')
+            TID = child.attrib.get('{http://www.interlis.ch/xtf/2.4/INTERLIS}tid', '')
             attributes = {}
             for attributeName in self.attributeNames:
                 element = child.find( interlisPrefix + attributeName)
@@ -537,7 +549,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             f = QgsFeature()
             if geom_element is None or len(geom_element) == 0:
                 if no_geom_layer:
-                    attributeList = [ErrorId]
+                    attributeList = [TID]
                     attributeList.extend(list(attributes.values()))
                     attributeList.append(0)
                     f.setAttributes(attributeList)
@@ -552,7 +564,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                     y = child.find('.//geom:c2',namespaces).text
                     if x and y:
                         f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(x), float(y))))
-                        attributeList = [ErrorId]
+                        attributeList = [TID]
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)  # Checked
                         f.setAttributes(attributeList)
@@ -568,7 +580,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                         points.append(QgsPointXY(float(x), float(y)))
                     if points:
                         f.setGeometry(QgsGeometry.fromPolylineXY(points))
-                        attributeList = [ErrorId]
+                        attributeList = [TID]
                         #self.iface.messageBar().pushMessage(ErrorId ,level=Qgis.Warning, duration=8)
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)
@@ -585,7 +597,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                         points.append(QgsPointXY(float(x), float(y)))
                     if points:
                         f.setGeometry(QgsGeometry.fromPolygonXY([points]))
-                        attributeList = [ErrorId]
+                        attributeList = [TID]
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)
                         f.setAttributes(attributeList)
