@@ -15,11 +15,15 @@ the Free Software Foundation; either version 3 of the License, or
 import os
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem, QCheckBox,QSizePolicy
-from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject,QgsWkbTypes
+from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject
 from qgis.PyQt.QtCore import QCoreApplication
 from PyQt5.QtWidgets import QComboBox
 from PyQt5.QtWidgets import QHBoxLayout, QLabel
 from PyQt5.QtCore import Qt
+from qgis.PyQt.QtWidgets import QWidget
+from PyQt5.QtWidgets import QToolButton, QStyle
+
+
 
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -33,6 +37,7 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
 
         #fix the panel too big problem because of long file name
         self.layerName.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+
         # add checkbox for infos
         self.checkBox_infos = QCheckBox()
         self.checkBox_infos.setText(QCoreApplication.translate('generals', 'Show infos'))
@@ -47,8 +52,7 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
                 self.checkBox_infos
             )
 
-        # add combobox for class filter
-        # horizontal layout for advanced filters
+        # add combobox for class filter,horizontal layout for advanced filters
         self.filterLayout = QHBoxLayout()
         self.filterLayout.setSpacing(4)
         self.filterLayout.setAlignment(Qt.AlignLeft)
@@ -92,24 +96,38 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         self.checkBox_errors.setEnabled(self.errorLayer != None)
         self.checkBox_errors.setText(QCoreApplication.translate('generals', 'Show errors'))
         self.checkBox_warnings.setText(QCoreApplication.translate('generals', 'Show warnings'))
-        parent_layout = self.verticalLayout
-        if parent_layout is not None:
-            parent_layout.insertWidget(
-                parent_layout.indexOf(self.checkBox_warnings) + 1,
-                self.checkBox_infos
-            )
         self.listWidget.itemSelectionChanged.connect(self.selectionChanged)
         self.listWidget.itemChanged.connect(self.updateItem)
-        # change window title based on geometry type
-        geometry_type = self.errorLayer.geometryType()
-        if geometry_type == QgsWkbTypes.PointGeometry:
-            self.setWindowTitle(QCoreApplication.translate('generals', 'igCheck - Point Errors'))
-        elif geometry_type == QgsWkbTypes.LineGeometry:
-            self.setWindowTitle(QCoreApplication.translate('generals', 'igCheck - Line Errors'))
-        elif geometry_type == QgsWkbTypes.PolygonGeometry:
-            self.setWindowTitle(QCoreApplication.translate('generals', 'igCheck - Surface Errors'))
-        else:
-            self.setWindowTitle(QCoreApplication.translate('generals', 'igCheck Error log'))
+
+        # Create a custom title bar widget
+        titleWidget = QWidget()
+        titleLayout = QHBoxLayout(titleWidget)
+        titleLayout.setContentsMargins(4, 0, 4, 0)  # reduce margins
+        titleLayout.setSpacing(6)
+
+        # Left: keep original window title
+        self.titleLabel = QLabel("igCheck - Point Errors")  # default title
+        titleLayout.addWidget(self.titleLabel)
+
+        # Right: add geometry selector
+        self.comboBox_geometry = QComboBox()
+        self.comboBox_geometry.addItems(["Point", "Line", "Surface", "No Geometry"])
+        self.comboBox_geometry.setMaximumWidth(150)
+        self.comboBox_geometry.currentIndexChanged.connect(self.switchGeometryLayer)
+        titleLayout.addWidget(self.comboBox_geometry)
+        titleLayout.addStretch()
+        # Apply as dock title bar
+        self.setTitleBarWidget(titleWidget)
+        
+        # Initialize
+        self.geometryLayers = {}
+
+        # Close button
+        closeButton = QToolButton()
+        closeButton.setIcon(self.style().standardIcon(QStyle.SP_TitleBarCloseButton))
+        closeButton.clicked.connect(self.close)
+        titleLayout.addWidget(closeButton)
+
 
         if not self.errorLayer:
             return
@@ -170,9 +188,6 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         request = QgsFeatureRequest().setFilterExpression(expression)
         if self.errorLayer:
             for error_feat in self.errorLayer.getFeatures(request):
-                # listEntry = error_feat.attributes()[error_idx] + " -- " + error_feat.attributes()[message_idx]
-                # widgetItem = QListWidgetItem(listEntry, self.listWidget)
-                # widgetItem.setCheckState(error_feat['Checked'])
                 error_id = error_feat.attributes()[error_id_idx]
                 error_message = error_feat.attributes()[message_idx]
                 TID_value = error_feat.attributes()[TID_idx]
@@ -201,10 +216,12 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         self.isUpdating = False
 
         sender = self.sender()
-        if isinstance(sender, QComboBox):  # only when combobox triggered
+        #if isinstance(sender, QComboBox):  # only when combobox triggered
+        #    if self.listWidget.count() > 0:
+        #        self.listWidget.setCurrentRow(0)
+        if sender is self.comboBox_value:
             if self.listWidget.count() > 0:
                 self.listWidget.setCurrentRow(0)
-    
 
 
     def updateValueCombo(self):
@@ -272,3 +289,66 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
     def layersWillBeRemoved(self, layerId):
         if(layerId == self.errorLayerId):
             self.close()
+
+
+    def switchGeometryLayer(self, index):
+        """Switch between Point / Line / Surface / No Geometry layers."""
+        if not hasattr(self, 'iface') or not self.iface:
+            return
+
+        selected_type = self.comboBox_geometry.currentText()
+        print(f"🔄 Switching to geometry type: {selected_type}")
+
+        # Define layer name keywords to search for
+        keyword_map = {
+            "Point": "_igChecker_Points",
+            "Line": "_igChecker_Lines",
+            "Surface": "_igChecker_Surfaces",
+            "No Geometry": "_igChecker_NoGeometry"
+        }
+
+        keyword = keyword_map.get(selected_type)
+        if not keyword:
+            print(f"⚠️ Unknown geometry type: {selected_type}")
+            return
+
+        # Search for the layer containing the keyword
+        target_layer = None
+        for layer in QgsProject.instance().mapLayers().values():
+            if keyword in layer.name():
+                target_layer = layer
+                break
+
+        if not target_layer:
+            print(f"⚠️ Layer not found for keyword: {keyword}")
+            return
+
+        # Update error layer
+        self.errorLayer = target_layer
+        self.layerName.setText(target_layer.name())
+
+        # Update title label
+        self.titleLabel.setText(f"igCheck - {selected_type} Errors")
+
+
+        # Reset filter combos when switching layer
+        self.comboBox_field.blockSignals(True)
+        self.comboBox_value.blockSignals(True)
+        self.comboBox_field.setCurrentIndex(0)  # "All"
+        self.comboBox_value.clear()
+        self.comboBox_value.addItem("All")
+        self.comboBox_field.blockSignals(False)
+        self.comboBox_value.blockSignals(False)
+
+        # Refresh list contents
+        self.updateList()
+
+        # Zoom to the full extent of the new layer
+        if target_layer:
+            self.iface.mapCanvas().setExtent(target_layer.extent())
+            self.iface.mapCanvas().refresh()
+
+        print(f"✅ Switched to layer: {target_layer.name()}")
+
+
+
