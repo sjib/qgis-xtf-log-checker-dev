@@ -15,7 +15,7 @@ the Free Software Foundation; either version 3 of the License, or
 import os
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem, QCheckBox,QSizePolicy
-from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject
+from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject,QgsWkbTypes
 from qgis.PyQt.QtCore import QCoreApplication
 from PyQt5.QtWidgets import QComboBox
 from PyQt5.QtWidgets import QHBoxLayout, QLabel
@@ -106,13 +106,28 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         titleLayout.setSpacing(6)
 
         # Left: keep original window title
-        self.titleLabel = QLabel("igCheck - Point Errors")  # default title
+        geometry_type = self.errorLayer.geometryType()
+        if geometry_type == QgsWkbTypes.PointGeometry:
+            default_title = "igCheck - Point Errors"
+            default_geom = "Point"
+        elif geometry_type == QgsWkbTypes.LineGeometry:
+            default_title = "igCheck - Line Errors"
+            default_geom = "Line"
+        elif geometry_type == QgsWkbTypes.PolygonGeometry:
+            default_title = "igCheck - Surface Errors"
+            default_geom = "Surface"
+        else:
+            default_title = "igCheck No Geometry Errors"
+            default_geom = "No Geometry"
+
+        self.titleLabel = QLabel(default_title)
         titleLayout.addWidget(self.titleLabel)
 
         # Right: add geometry selector
         self.comboBox_geometry = QComboBox()
         self.comboBox_geometry.addItems(["Point", "Line", "Surface", "No Geometry"])
         self.comboBox_geometry.setMaximumWidth(150)
+        self.comboBox_geometry.setCurrentText(default_geom)
         self.comboBox_geometry.currentIndexChanged.connect(self.switchGeometryLayer)
         titleLayout.addWidget(self.comboBox_geometry)
         titleLayout.addStretch()
