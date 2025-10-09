@@ -57,15 +57,15 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         self.filterLayout.setSpacing(4)
         self.filterLayout.setAlignment(Qt.AlignLeft)
 
-        # label + field combobox
-        self.label_field = QLabel("Field:")
+        # label + field combobox 
+        self.label_field = QLabel(QCoreApplication.translate('generals', 'Field:'))
         self.label_field.setMaximumWidth(50)
         self.comboBox_field = QComboBox()
         self.comboBox_field.addItems(["All", "Class", "Tid", "Topic","ErrorId","Description"])
         self.comboBox_field.setMaximumWidth(100)  
 
         # label + value combobox
-        self.label_value = QLabel("Value:")
+        self.label_value = QLabel(QCoreApplication.translate('generals', 'Value:'))
         self.label_value.setMaximumWidth(50)
         self.comboBox_value = QComboBox()
         self.comboBox_value.addItem("All")

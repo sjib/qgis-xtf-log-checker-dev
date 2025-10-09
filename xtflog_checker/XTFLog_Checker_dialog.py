@@ -422,7 +422,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 (polygon_layer and polygon_layer.featureCount() > 0) or
                 (no_geom_layer and no_geom_layer.featureCount() > 0)):
             
-            self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', '1The selected XTF file contains no igCheck-Errors, select another file.'), level=Qgis.Info, duration=8)
+            self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', 'The selected XTF file contains no igCheck-Errors, select another file.'), level=Qgis.Info, duration=8)
             return
 
         # optional: store last used layer

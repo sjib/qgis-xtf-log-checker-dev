@@ -4,9 +4,9 @@
 <context>
     <name>generals</name>
     <message>
-        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="44"/>
+        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="97"/>
         <source>Show errors</source>
-        <translation type="obsolete">Mostra errori</translation>
+        <translation>Mostra errori</translation>
     </message>
     <message>
         <location filename="../XTFLog_Checker_dialog.py" line="38"/>
@@ -39,42 +39,42 @@
         <translation>È possibile selezionare solo i layer creati con questo plugin</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_dialog.py" line="277"/>
+        <location filename="../XTFLog_Checker_dialog.py" line="491"/>
         <source>No valid file</source>
         <translation>File non valido</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_dialog.py" line="267"/>
+        <location filename="../XTFLog_Checker_dialog.py" line="481"/>
         <source>Could not get a valid XTF-Log file from specified Url</source>
         <translation>Impossibile ottenere un file XTF-Log valido dall&apos;URL specificato</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_dialog.py" line="277"/>
+        <location filename="../XTFLog_Checker_dialog.py" line="491"/>
         <source>No valid XTF-Log file at specified Path</source>
         <translation>Nessun file XTF-Log valido nel percorso specificato</translation>
     </message>
     <message>
         <location filename="../XTFLog_Checker_dock_panel.py" line="42"/>
         <source>Error log</source>
-        <translation type="obsolete">XTFLog-Checker registro errori</translation>
+        <translation>XTFLog-Checker registro errori</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_dialog.py" line="413"/>
+        <location filename="../XTFLog_Checker_dialog.py" line="625"/>
         <source>No Errors</source>
         <translation>Non ci sono errori</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_dialog.py" line="210"/>
+        <location filename="../XTFLog_Checker_dialog.py" line="213"/>
         <source>The selected XTF file contains no Ilivalidator-Errors, select another file.</source>
         <translation>Il file selezionato non contiene errori del tipo IliVErrors, selezionare un altro file.</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_dialog.py" line="272"/>
+        <location filename="../XTFLog_Checker_dialog.py" line="486"/>
         <source>Large file</source>
         <translation>File più grande di 5 MB</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_dialog.py" line="272"/>
+        <location filename="../XTFLog_Checker_dialog.py" line="486"/>
         <source>Processing of large XTF-Log files might take a while</source>
         <translation>L&apos;elaborazione di file di grandi dimensioni potrebbe richiedere del tempo</translation>
     </message>
@@ -89,29 +89,29 @@
         <translation type="obsolete">Modello non supportato</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_dialog.py" line="307"/>
+        <location filename="../XTFLog_Checker_dialog.py" line="312"/>
         <source>No valid geometry</source>
         <translation>Nessuna geometria valida</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_dialog.py" line="307"/>
+        <location filename="../XTFLog_Checker_dialog.py" line="527"/>
         <source>No Point, Line or Surface Geometries found.</source>
         <translation>Nessuna geometria di punto, linea o superficie trovata</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_dialog.py" line="413"/>
+        <location filename="../XTFLog_Checker_dialog.py" line="625"/>
         <source>The selected XTF file contains no igCheck-Errors, select another file.</source>
         <translation>Il file XTF selezionato non contiene errori igCheck, seleziona un altro file</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="45"/>
+        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="98"/>
         <source>Show warnings</source>
-        <translation type="obsolete">Mostra avvisi</translation>
+        <translation>Mostra avvisi</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="35"/>
+        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="43"/>
         <source>Show infos</source>
-        <translation type="obsolete">Mostra informazioni</translation>
+        <translation>Mostra informazioni</translation>
     </message>
     <message>
         <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="57"/>
@@ -141,17 +141,32 @@
     <message>
         <location filename="../XTFLog_Checker_dialog.py" line="120"/>
         <source>Unsupported error file version interlis2.4, ErrorLog24 iG/Check not supported yet - please contact developer if you are interested to add support for this model format!</source>
-        <translation> Versione del file di errore non supportata interlis2.4, ErrorLog24 iG/Check non supportato ancora - contatta lo sviluppatore se sei interessato ad aggiungere il supporto per questo formato di modello!</translation>
+        <translation type="obsolete"> Versione del file di errore non supportata interlis2.4, ErrorLog24 iG/Check non supportato ancora - contatta lo sviluppatore se sei interessato ad aggiungere il supporto per questo formato di modello!</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_dialog.py" line="125"/>
+        <location filename="../XTFLog_Checker_dialog.py" line="126"/>
         <source>Unsupported error file version interlis2.4, ErrorLog24 IliVErrors not supported yet - please contact developer if you are interested to add support for this model format!</source>
         <translation> Versione del file di errore non supportata interlis2.4, Modello {model_name} / {model_sender} non supportato ancora - contatta lo sviluppatore se sei interessato ad aggiungere il supporto per questo formato di modello!</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_dialog.py" line="127"/>
+        <location filename="../XTFLog_Checker_dialog.py" line="128"/>
         <source>Unsupported error file version interlis2.4, Model {model_name} / {model_sender} not supported yet - please contact developer if you are interested to add support for this model format!</source>
         <translation> Versione del file di errore non supportata, Modello {model_name} non supportato ancora - contatta lo sviluppatore se sei interessato ad aggiungere il supporto per questo formato di modello!</translation>
+    </message>
+    <message>
+        <location filename="../XTFLog_Checker_dialog.py" line="527"/>
+        <source>No valid geometry or Errors</source>
+        <translation>Nessuna geometria o errore valido</translation>
+    </message>
+    <message>
+        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="61"/>
+        <source>Field:</source>
+        <translation>Campo:</translation>
+    </message>
+    <message>
+        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="68"/>
+        <source>Value:</source>
+        <translation>Valore:</translation>
     </message>
 </context>
 </TS>
