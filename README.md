@@ -1,24 +1,30 @@
 # XTFLog-Checker
 
 ## What do I use XTFLog-Checker for?
-XTFLog-Checker is a [QGIS](https://www.qgis.org/en/site/) plugin that lets you display errors in XTFLog files created by the [Ilivalidator](https://www.interlis.ch/downloads/ilivalidator) and [iG/Check](https://www.interlis.ch/en/downloads/igcheck). When opening an XTFLog file in QGis with this plugin, a checklist is created that helps you keep track of your progress when addressing the errors.
+XTFLog-Checker is a [QGIS](https://www.qgis.org/en/site/) plugin that lets you display errors in XTFLog files created by the [Ilivalidator](https://www.interlis.ch/downloads/ilivalidator) and [iG/Check](https://www.interlis.ch/en/downloads/igcheck). When opening an XTFLog file in QGIS with this plugin, a checklist is created that helps you keep track of your progress when addressing the errors.
 
 ## Where can I get it?
 Install the [QGIS XTFLog-Checker](https://plugins.qgis.org/plugins) directly in QGIS by using the [Plugins menu](http://docs.qgis.org/latest/en/docs/user_manual/plugins/plugins.html).
 
+## Requirements
+- QGIS version: 3.40 or later
+- Tested on Windows, macOS, and Linux
+
 ## How to use
 
-Click on the XTFLog-Checker Icon ![Icon](xtflogchecker_icon.png)
+1. Click on the XTFLog-Checker Icon ![Icon](xtflogchecker_icon.png)
 
 The following dialog will appear:
 
 ![Dialog](xtflogchecker_dialog.png)
 
-Select the error log xtf file you want to be visualized.
+2. Select the error log xtf file you want to be visualized.
 
 ![Dialog - select file](xtflogchecker_dialog2.png)
 
-Click on 'Create Layer' - the error log will be analyzed and the results will be displayed.
+3. Click on 'Create Layer' - the error log will be analyzed and the results will be displayed.
+
+4. Use the **Layer Switch** dropdown or reopen the dialog to change layers.
 
 ### Ilivalidator
 
@@ -26,8 +32,6 @@ Click on 'Create Layer' - the error log will be analyzed and the results will be
 
 All Errors are displayed on the same layer. The latest version also supports the display of Errors without an assigned geometry. 
 
-The following INTERLIS Error log versions are supported:
-https://models.interlis.ch/tools/IliVErrors.ili (Interlis 2.3). A version for INTERLIS 2.4. does not exist (yet).
 
 ### iG/Check
 
@@ -52,6 +56,10 @@ In the following dialog choose the layer you want to be displayed:
 
 ![Change layer](xtflogchecker_dialog_change_layer.png)
 
+Or you can change the layer from the “Layer Switch” dropdown in the panel.
+
+<img src='xtflogchecker_dialog_change_layer2.png' alt="Icon" width="50%">
+
 ### Filter errors by category
 
 You can filter the errors by their categories: [errors, warnings, info]:
@@ -59,6 +67,10 @@ You can filter the errors by their categories: [errors, warnings, info]:
 ![Filter](xtflogchecker_filter_error_warning.png)
 
 ![Filter Info](xtflogchecker_filter_info.png)
+
+You can also use the advanced selection, to choose Class,Tid,Topic,ErrorId,Description,After selecting, the first item will be automatically highlighted and zoomed in.
+
+<img src='Advanced_Selection.png' alt="Icon" width="50%">
 
 ### Tooltip with additional information
 

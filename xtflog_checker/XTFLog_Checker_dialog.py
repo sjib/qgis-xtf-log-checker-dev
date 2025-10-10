@@ -422,7 +422,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                 (polygon_layer and polygon_layer.featureCount() > 0) or
                 (no_geom_layer and no_geom_layer.featureCount() > 0)):
             
-            self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', '1The selected XTF file contains no igCheck-Errors, select another file.'), level=Qgis.Info, duration=8)
+            self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', 'The selected XTF file contains no igCheck-Errors, select another file.'), level=Qgis.Info, duration=8)
             return
 
         # optional: store last used layer
@@ -633,11 +633,30 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
 
 
 
+    # def showErrorLog(self):
+    #     for layer in QgsProject.instance().mapLayers().values():
+    #         if layer.name() == self.layerbox.currentText():
+    #             self.errorLayer = layer
+    #             self.showDock()
+
     def showErrorLog(self):
+        # Remove the dock widget from QGIS interface
+        if hasattr(self, "dock") and self.dock is not None:
+            try:
+                self.iface.removeDockWidget(self.dock)
+                self.dock.close()
+                self.dock.deleteLater()
+            except Exception as e:
+                print(f" Failed to remove previous dock: {e}")
+            self.dock = None
+
+        # Step 2: Find the selected layer and show the new dock
         for layer in QgsProject.instance().mapLayers().values():
             if layer.name() == self.layerbox.currentText():
                 self.errorLayer = layer
                 self.showDock()
+                break  
+
 
     def hideCheckedColumns(self, layer):
         config = layer.attributeTableConfig()
