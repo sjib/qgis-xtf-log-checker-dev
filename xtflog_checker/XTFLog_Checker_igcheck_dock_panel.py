@@ -14,7 +14,7 @@ the Free Software Foundation; either version 3 of the License, or
 
 import os
 from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem, QCheckBox,QSizePolicy
+from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem, QCheckBox,QSizePolicy,QSpacerItem
 from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject,QgsWkbTypes
 from qgis.PyQt.QtCore import QCoreApplication
 from PyQt5.QtWidgets import QComboBox
@@ -137,11 +137,32 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         # Initialize
         self.geometryLayers = {}
 
+        # Floating / dock toggle button
+        self.floatButton = QToolButton()
+        self.floatButton.setIcon(self.style().standardIcon(QStyle.SP_TitleBarNormalButton))
+        self.floatButton.setStyleSheet("QToolButton { color: black; border: none; }")  # no fade, no border
+        self.floatButton.setAutoRaise(False)
+        self.floatButton.clicked.connect(lambda: self.setFloating(not self.isFloating()))
+        self.floatButton.setFixedSize(16, 16)
+        #titleLayout.addWidget(self.floatButton)
+
         # Close button
         closeButton = QToolButton()
         closeButton.setIcon(self.style().standardIcon(QStyle.SP_TitleBarCloseButton))
         closeButton.clicked.connect(self.close)
-        titleLayout.addWidget(closeButton)
+        closeButton.setFixedSize(16, 16)
+        closeButton.setStyleSheet("QToolButton { border: none }")
+        #titleLayout.addWidget(closeButton)
+
+        # Create a small layout for the two buttons
+        buttonLayout = QHBoxLayout()
+        buttonLayout.setContentsMargins(0,0,0,0)
+        buttonLayout.setSpacing(0)  # no spacing between the two buttons
+        buttonLayout.addWidget(self.floatButton)
+        buttonLayout.addWidget(closeButton)
+
+        # Add this buttonLayout to the main titleLayout
+        titleLayout.addLayout(buttonLayout)
 
 
         if not self.errorLayer:
@@ -231,9 +252,6 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         self.isUpdating = False
 
         sender = self.sender()
-        #if isinstance(sender, QComboBox):  # only when combobox triggered
-        #    if self.listWidget.count() > 0:
-        #        self.listWidget.setCurrentRow(0)
         if sender is self.comboBox_value:
             if self.listWidget.count() > 0:
                 self.listWidget.setCurrentRow(0)
@@ -302,8 +320,9 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
             layer.changeAttributeValue(feat.id(), field_idx, item.checkState())
 
     def layersWillBeRemoved(self, layerId):
-        if(layerId == self.errorLayerId):
-            self.close()
+         if(layerId == self.errorLayerId):
+             self.close()
+
 
 
     def switchGeometryLayer(self, index):
@@ -364,6 +383,8 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
             self.iface.mapCanvas().refresh()
 
         print(f"✅ Switched to layer: {target_layer.name()}")
+
+
 
 
 

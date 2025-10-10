@@ -633,11 +633,30 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
 
 
 
+    # def showErrorLog(self):
+    #     for layer in QgsProject.instance().mapLayers().values():
+    #         if layer.name() == self.layerbox.currentText():
+    #             self.errorLayer = layer
+    #             self.showDock()
+
     def showErrorLog(self):
+        # Remove the dock widget from QGIS interface
+        if hasattr(self, "dock") and self.dock is not None:
+            try:
+                self.iface.removeDockWidget(self.dock)
+                self.dock.close()
+                self.dock.deleteLater()
+            except Exception as e:
+                print(f" Failed to remove previous dock: {e}")
+            self.dock = None
+
+        # Step 2: Find the selected layer and show the new dock
         for layer in QgsProject.instance().mapLayers().values():
             if layer.name() == self.layerbox.currentText():
                 self.errorLayer = layer
                 self.showDock()
+                break  
+
 
     def hideCheckedColumns(self, layer):
         config = layer.attributeTableConfig()
