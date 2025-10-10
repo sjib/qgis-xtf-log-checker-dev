@@ -8,8 +8,8 @@ author=GeoWerkstatt GmbH & Stefan Jürg Burckhardt, Software, Informationsmanage
 email=support@geowerkstatt.ch
 
 tags=interlis, ili, ilivalidator, igcheck, iG/Check, xtf, transferfile, swiss, suisse, schweiz, switzerland
-changelog=  1.2.2 Add fast error layer list switch function in the dock panle
-            1.2.1 Add advanced selection function in the dock panle, support ErrorId, Tid, Description, Topic, Class
+changelog=  1.2.2 Add fast error layer list switch function in the dock panel
+            1.2.1 Add advanced selection function in the dock panel, support ErrorId, Tid, Description, Topic, Class
             1.2.0 Supporting also igCheck 2.4 xtf error logs with point, line and surface geometry errors
             1.1.0 Supporting also igCheck 2.3 xtf error logs with point, line and surface geometry errors
             1.0.3 Update the Date,Fix the deprecation warning:QgsField constructor deprecated

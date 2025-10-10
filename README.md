@@ -58,7 +58,7 @@ In the following dialog choose the layer you want to be displayed:
 
 Or you can change the layer from the “Layer Switch” dropdown in the panel.
 
-![Switch error layer](xtflogchecker_dialog_change_layer2.png)
+<img src='xtflogchecker_dialog_change_layer2.png' alt="Icon" width="50%">
 
 ### Filter errors by category
 
@@ -70,7 +70,7 @@ You can filter the errors by their categories: [errors, warnings, info]:
 
 You can also use the advanced selection, to choose Class,Tid,Topic,ErrorId,Description,After selecting, the first item will be automatically highlighted and zoomed in.
 
-![advanced Selection](Advanced_Selection.png)
+<img src='Advanced_Selection.png' alt="Icon" width="50%">
 
 ### Tooltip with additional information
 
