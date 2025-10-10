@@ -17,7 +17,7 @@ import os
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem,QSizePolicy
 from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication,Qt
 
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -29,7 +29,15 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
         self.iface = iface
         self.setupUi(self)
         #fix the panel too big problem because of long file name
-        self.layerName.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        #self.layerName.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        try:
+            size_ignored = QSizePolicy.Policy.Ignored
+            size_preferred = QSizePolicy.Policy.Preferred
+        except AttributeError:
+            size_ignored = QSizePolicy.Ignored
+            size_preferred = QSizePolicy.Preferred
+
+        self.layerName.setSizePolicy(size_ignored, size_preferred)
         self.errorLayer = errorLayer
         QgsProject.instance().layerWillBeRemoved[str].connect(self.layersWillBeRemoved)
         self.checkBox_errors.stateChanged.connect(self.evaluateCheckButtons)
@@ -67,7 +75,9 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
             for error_feat in self.errorLayer.getFeatures(request):
                 listEntry = error_feat.attributes()[TID_idx] + " -- " + error_feat.attributes()[message_idx]
                 widgetItem = QListWidgetItem(listEntry, self.listWidget)
-                widgetItem.setCheckState(error_feat['Checked'])
+                #support for both PyQt5 and PyQt6
+                state = Qt.CheckState(error_feat['Checked'])
+                widgetItem.setCheckState(state)
         self.isUpdating = False
 
     def evaluateCheckButtons(self):
