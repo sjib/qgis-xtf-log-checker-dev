@@ -18,6 +18,7 @@ from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem, QCheckBox,QSizePol
 from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject,QgsWkbTypes
 from qgis.PyQt.QtCore import QCoreApplication,Qt
 from qgis.PyQt.QtWidgets import QWidget,QComboBox,QHBoxLayout, QLabel,QToolButton, QStyle
+from qgis.PyQt.QtGui import QPalette
 
 
 
@@ -31,7 +32,6 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         super().__init__(parent)
         self.iface = iface
         self.setupUi(self)
-
         #fix the panel too big problem because of long file name
         #self.layerName.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         try:
@@ -116,6 +116,7 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         titleLayout.setContentsMargins(4, 0, 4, 0)  # reduce margins
         titleLayout.setSpacing(6)
 
+
         # Left: keep original window title
         geometry_type = self.errorLayer.geometryType()
         if geometry_type == QgsWkbTypes.PointGeometry:
@@ -133,6 +134,7 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
 
         self.titleLabel = QLabel(default_title)
         titleLayout.addWidget(self.titleLabel)
+
 
         # Right: add geometry selector
         self.comboBox_geometry = QComboBox()
