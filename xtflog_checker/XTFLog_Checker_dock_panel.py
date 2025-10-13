@@ -38,6 +38,13 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
             size_preferred = QSizePolicy.Preferred
 
         self.layerName.setSizePolicy(size_ignored, size_preferred)
+
+        # make font bold in Qt5 and Qt6 and keep the "_" on windows
+        current_font = self.layerName.font()
+        current_font.setBold(True)
+        self.layerName.setFont(current_font)
+        self.layerName.setTextFormat(Qt.TextFormat.PlainText)
+        
         self.errorLayer = errorLayer
         QgsProject.instance().layerWillBeRemoved[str].connect(self.layersWillBeRemoved)
         self.checkBox_errors.stateChanged.connect(self.evaluateCheckButtons)

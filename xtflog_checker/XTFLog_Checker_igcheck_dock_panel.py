@@ -18,7 +18,6 @@ from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem, QCheckBox,QSizePol
 from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject,QgsWkbTypes
 from qgis.PyQt.QtCore import QCoreApplication,Qt
 from qgis.PyQt.QtWidgets import QWidget,QComboBox,QHBoxLayout, QLabel,QToolButton, QStyle
-from qgis.PyQt.QtGui import QPalette
 
 
 
@@ -42,6 +41,11 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
             size_preferred = QSizePolicy.Preferred
 
         self.layerName.setSizePolicy(size_ignored, size_preferred)
+        # make font bold in Qt5 and Qt6 and keep the "_" on windows
+        current_font = self.layerName.font()
+        current_font.setBold(True)
+        self.layerName.setFont(current_font)
+        self.layerName.setTextFormat(Qt.TextFormat.PlainText)
 
         # add checkbox for infos
         self.checkBox_infos = QCheckBox()
