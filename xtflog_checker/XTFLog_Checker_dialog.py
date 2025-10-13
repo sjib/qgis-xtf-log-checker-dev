@@ -15,7 +15,7 @@ the Free Software Foundation; either version 3 of the License, or
 import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
-from qgis.PyQt.QtCore import Qt, QMetaType,QCoreApplication,QVariant
+from qgis.PyQt.QtCore import Qt,QCoreApplication,QMetaType
 from qgis.core import QgsVectorLayer, QgsField, QgsProject, QgsFeature, QgsGeometry, QgsPointXY, QgsEditorWidgetSetup, QgsMapLayerType,QgsMessageLog
 # 3.7.2025
 from qgis.core import Qgis
@@ -133,27 +133,27 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             errorLayer = QgsVectorLayer("Point?crs=epsg:2056", fileName + "_Ilivalidator_Errors", "memory")
             errorDataProvider = errorLayer.dataProvider()
 
-            errorDataProvider.addAttributes([QgsField("TID", QVariant.String),
-                                            QgsField("ErrorId", QVariant.String),
-                                            QgsField("Type", QVariant.String),
-                                            QgsField("Message", QVariant.String),
-                                            QgsField("Description", QVariant.String),
-                                            QgsField("Category", QVariant.String),
-                                            QgsField("Tid", QVariant.String),
-                                            QgsField("ObjTag", QVariant.String),
-                                            QgsField("Model", QVariant.String),
-                                            QgsField("TechId", QVariant.String),
-                                            QgsField("Topic", QVariant.String),
-                                            QgsField("UserId", QVariant.String),
-                                            QgsField("Class", QVariant.String),
-                                            QgsField("Name", QVariant.String),
-                                            QgsField("Value", QVariant.String),
-                                            QgsField("IliQName", QVariant.String),
-                                            QgsField("DataSource", QVariant.String),
-                                            QgsField("Line", QVariant.String),
-                                            QgsField("TechDetails", QVariant.String),
-                                            QgsField("Module", QVariant.String),
-                                            QgsField("Checked", QVariant.Int)])
+            errorDataProvider.addAttributes([QgsField("TID", QMetaType.Type.QString),
+                                            QgsField("ErrorId", QMetaType.Type.QString),
+                                            QgsField("Type", QMetaType.Type.QString),
+                                            QgsField("Message", QMetaType.Type.QString),
+                                            QgsField("Description", QMetaType.Type.QString),
+                                            QgsField("Category", QMetaType.Type.QString),
+                                            QgsField("Tid", QMetaType.Type.QString),
+                                            QgsField("ObjTag", QMetaType.Type.QString),
+                                            QgsField("Model", QMetaType.Type.QString),
+                                            QgsField("TechId", QMetaType.Type.QString),
+                                            QgsField("Topic", QMetaType.Type.QString),
+                                            QgsField("UserId", QMetaType.Type.QString),
+                                            QgsField("Class", QMetaType.Type.QString),
+                                            QgsField("Name", QMetaType.Type.QString),
+                                            QgsField("Value", QMetaType.Type.QString),
+                                            QgsField("IliQName", QMetaType.Type.QString),
+                                            QgsField("DataSource", QMetaType.Type.QString),
+                                            QgsField("Line", QMetaType.Type.QString),
+                                            QgsField("TechDetails", QMetaType.Type.QString),
+                                            QgsField("Module", QMetaType.Type.QString),
+                                            QgsField("Checked", QMetaType.Type.Int)])
 
             errorLayer.updateFields()
 
@@ -227,27 +227,27 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             layer = QgsVectorLayer(f"{geometry_type}?crs=epsg:2056", layer_name, "memory")
             pr = layer.dataProvider()
             pr.addAttributes([
-                QgsField("TID", QVariant.String),
-                QgsField("ErrorId", QVariant.String),
-                QgsField("Type", QVariant.String),
-                QgsField("Message", QVariant.String),
-                QgsField("Description", QVariant.String),
-                QgsField("Category", QVariant.String),
-                QgsField("Tid", QVariant.String),
-                QgsField("ObjTag", QVariant.String),
-                QgsField("Model", QVariant.String),
-                QgsField("TechId", QVariant.String),
-                QgsField("Topic", QVariant.String),
-                QgsField("UserId", QVariant.String),
-                QgsField("Class", QVariant.String),
-                QgsField("Name", QVariant.String),
-                QgsField("Value", QVariant.String),
-                QgsField("IliQName", QVariant.String),
-                QgsField("DataSource", QVariant.String),
-                QgsField("Line", QVariant.String),
-                QgsField("TechDetails", QVariant.String),
-                QgsField("Module", QVariant.String),
-                QgsField("Checked", QVariant.Int)
+                QgsField("TID", QMetaType.Type.QString),
+                QgsField("ErrorId", QMetaType.Type.QString),
+                QgsField("Type", QMetaType.Type.QString),
+                QgsField("Message", QMetaType.Type.QString),
+                QgsField("Description", QMetaType.Type.QString),
+                QgsField("Category", QMetaType.Type.QString),
+                QgsField("Tid", QMetaType.Type.QString),
+                QgsField("ObjTag", QMetaType.Type.QString),
+                QgsField("Model", QMetaType.Type.QString),
+                QgsField("TechId", QMetaType.Type.QString),
+                QgsField("Topic", QMetaType.Type.QString),
+                QgsField("UserId", QMetaType.Type.QString),
+                QgsField("Class", QMetaType.Type.QString),
+                QgsField("Name", QMetaType.Type.QString),
+                QgsField("Value", QMetaType.Type.QString),
+                QgsField("IliQName", QMetaType.Type.QString),
+                QgsField("DataSource", QMetaType.Type.QString),
+                QgsField("Line", QMetaType.Type.QString),
+                QgsField("TechDetails", QMetaType.Type.QString),
+                QgsField("Module", QMetaType.Type.QString),
+                QgsField("Checked", QMetaType.Type.Int)
             ])
             layer.updateFields()
             # Hide 'Checked' attribute
@@ -436,27 +436,27 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             layer = QgsVectorLayer(f"{geometry_type}?crs=epsg:2056", layer_name, "memory")
             pr = layer.dataProvider()
             pr.addAttributes([
-                QgsField("TID", QVariant.String),
-                QgsField("ErrorId", QVariant.String),
-                QgsField("Type", QVariant.String),
-                QgsField("Message", QVariant.String),
-                QgsField("Description", QVariant.String),
-                QgsField("Category", QVariant.String),
-                QgsField("Tid", QVariant.String),
-                QgsField("ObjTag", QVariant.String),
-                QgsField("Model", QVariant.String),
-                QgsField("TechId", QVariant.String),
-                QgsField("Topic", QVariant.String),
-                QgsField("UserId", QVariant.String),
-                QgsField("Class", QVariant.String),
-                QgsField("Name", QVariant.String),
-                QgsField("Value", QVariant.String),
-                QgsField("IliQName", QVariant.String),
-                QgsField("DataSource", QVariant.String),
-                QgsField("Line", QVariant.String),
-                QgsField("TechDetails", QVariant.String),
-                QgsField("Module", QVariant.String),
-                QgsField("Checked", QVariant.Int)
+                QgsField("TID", QMetaType.Type.QString),
+                QgsField("ErrorId", QMetaType.Type.QString),
+                QgsField("Type", QMetaType.Type.QString),
+                QgsField("Message", QMetaType.Type.QString),
+                QgsField("Description", QMetaType.Type.QString),
+                QgsField("Category", QMetaType.Type.QString),
+                QgsField("Tid", QMetaType.Type.QString),
+                QgsField("ObjTag", QMetaType.Type.QString),
+                QgsField("Model", QMetaType.Type.QString),
+                QgsField("TechId", QMetaType.Type.QString),
+                QgsField("Topic", QMetaType.Type.QString),
+                QgsField("UserId", QMetaType.Type.QString),
+                QgsField("Class", QMetaType.Type.QString),
+                QgsField("Name", QMetaType.Type.QString),
+                QgsField("Value", QMetaType.Type.QString),
+                QgsField("IliQName", QMetaType.Type.QString),
+                QgsField("DataSource", QMetaType.Type.QString),
+                QgsField("Line", QMetaType.Type.QString),
+                QgsField("TechDetails", QMetaType.Type.QString),
+                QgsField("Module", QMetaType.Type.QString),
+                QgsField("Checked", QMetaType.Type.Int)
             ])
             layer.updateFields()
             # Hide 'Checked' attribute
