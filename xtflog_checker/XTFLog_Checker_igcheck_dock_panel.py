@@ -16,12 +16,9 @@ import os
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem, QCheckBox,QSizePolicy,QSpacerItem
 from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject,QgsWkbTypes
-from qgis.PyQt.QtCore import QCoreApplication
-from PyQt5.QtWidgets import QComboBox
-from PyQt5.QtWidgets import QHBoxLayout, QLabel
-from PyQt5.QtCore import Qt
-from qgis.PyQt.QtWidgets import QWidget
-from PyQt5.QtWidgets import QToolButton, QStyle
+from qgis.PyQt.QtCore import QCoreApplication,Qt
+from qgis.PyQt.QtWidgets import QWidget,QComboBox,QHBoxLayout, QLabel,QToolButton, QStyle
+
 
 
 
@@ -34,9 +31,21 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         super().__init__(parent)
         self.iface = iface
         self.setupUi(self)
-
         #fix the panel too big problem because of long file name
-        self.layerName.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        #self.layerName.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        try:
+            size_ignored = QSizePolicy.Policy.Ignored
+            size_preferred = QSizePolicy.Policy.Preferred
+        except AttributeError:
+            size_ignored = QSizePolicy.Ignored
+            size_preferred = QSizePolicy.Preferred
+
+        self.layerName.setSizePolicy(size_ignored, size_preferred)
+        # make font bold in Qt5 and Qt6 and keep the "_" on windows
+        current_font = self.layerName.font()
+        current_font.setBold(True)
+        self.layerName.setFont(current_font)
+        self.layerName.setTextFormat(Qt.TextFormat.PlainText)
 
         # add checkbox for infos
         self.checkBox_infos = QCheckBox()
@@ -55,7 +64,13 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         # add combobox for class filter,horizontal layout for advanced filters
         self.filterLayout = QHBoxLayout()
         self.filterLayout.setSpacing(4)
-        self.filterLayout.setAlignment(Qt.AlignLeft)
+        #self.filterLayout.setAlignment(Qt.AlignLeft)
+        try:
+            align_left = Qt.AlignmentFlag.AlignLeft
+        except AttributeError:
+            align_left = Qt.AlignLeft
+
+        self.filterLayout.setAlignment(align_left)
 
         # label + field combobox 
         self.label_field = QLabel(QCoreApplication.translate('generals', 'Field:'))
@@ -105,6 +120,7 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         titleLayout.setContentsMargins(4, 0, 4, 0)  # reduce margins
         titleLayout.setSpacing(6)
 
+
         # Left: keep original window title
         geometry_type = self.errorLayer.geometryType()
         if geometry_type == QgsWkbTypes.PointGeometry:
@@ -123,6 +139,7 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         self.titleLabel = QLabel(default_title)
         titleLayout.addWidget(self.titleLabel)
 
+
         # Right: add geometry selector
         self.comboBox_geometry = QComboBox()
         self.comboBox_geometry.addItems(["Point", "Line", "Surface", "No Geometry"])
@@ -139,7 +156,7 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
 
         # Floating / dock toggle button
         self.floatButton = QToolButton()
-        self.floatButton.setIcon(self.style().standardIcon(QStyle.SP_TitleBarNormalButton))
+        self.floatButton.setIcon(self.style().standardIcon(QStyle.StandardPixmap.SP_TitleBarMaxButton))
         self.floatButton.setStyleSheet("QToolButton { color: black; border: none; }")  # no fade, no border
         self.floatButton.setAutoRaise(False)
         self.floatButton.clicked.connect(lambda: self.setFloating(not self.isFloating()))
@@ -148,7 +165,13 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
 
         # Close button
         closeButton = QToolButton()
-        closeButton.setIcon(self.style().standardIcon(QStyle.SP_TitleBarCloseButton))
+        #closeButton.setIcon(self.style().standardIcon(QStyle.SP_TitleBarCloseButton))
+        try:
+            sp_close = QStyle.StandardPixmap.SP_TitleBarCloseButton
+        except AttributeError:
+            sp_close = QStyle.SP_TitleBarCloseButton
+        closeButton.setIcon(self.style().standardIcon(sp_close))
+
         closeButton.clicked.connect(self.close)
         closeButton.setFixedSize(16, 16)
         closeButton.setStyleSheet("QToolButton { border: none }")
@@ -158,7 +181,7 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         buttonLayout = QHBoxLayout()
         buttonLayout.setContentsMargins(0,0,0,0)
         buttonLayout.setSpacing(0)  # no spacing between the two buttons
-        buttonLayout.addWidget(self.floatButton)
+        #buttonLayout.addWidget(self.floatButton)
         buttonLayout.addWidget(closeButton)
 
         # Add this buttonLayout to the main titleLayout
@@ -229,7 +252,10 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
                 TID_value = error_feat.attributes()[TID_idx]
                 listEntry = f"{TID_value} -- {error_message} ({error_id})"
                 widgetItem = QListWidgetItem(listEntry, self.listWidget)
-                widgetItem.setCheckState(error_feat['Checked'])
+                #widgetItem.setCheckState(error_feat['Checked'])
+                #support for both PyQt5 and PyQt6
+                state = Qt.CheckState(error_feat['Checked'])
+                widgetItem.setCheckState(state)
 
                 # Create the tooltip text
                 tooltip_text = f"<b>TID:</b> {error_feat.attributes()[TID_idx]}<br>" 
