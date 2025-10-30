@@ -85,12 +85,18 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         self.comboBox_value = QComboBox()
         self.comboBox_value.addItem("All")
         self.comboBox_value.setMinimumWidth(150)
-
+        
+        # add a 'select all' button
+        self.checkBox_selectAll = QCheckBox(QCoreApplication.translate('generals', 'Select_All'))
+        self.checkBox_selectAll.stateChanged.connect(self.toggleSelectAll)
+        
         # add widgets to horizontal layout
         self.filterLayout.addWidget(self.label_field)
         self.filterLayout.addWidget(self.comboBox_field)
         self.filterLayout.addWidget(self.label_value)
         self.filterLayout.addWidget(self.comboBox_value)
+        #self.filterLayout.addWidget(self.label_selectAll)
+        self.filterLayout.addWidget(self.checkBox_selectAll)
 
         # insert the horizontal layout below infos checkbox
         parent_layout = self.verticalLayout
@@ -409,6 +415,40 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
             self.iface.mapCanvas().refresh()
 
         print(f"✅ Switched to layer: {target_layer.name()}")
+
+
+
+    def toggleSelectAll1(self, state):
+        """Triggered when 'Select All' checkbox is toggled."""
+        if state == Qt.Checked:
+            # Select all items
+            for i in range(self.comboBox_value.count()):
+                self.comboBox_value.setItemData(i, Qt.Checked, Qt.CheckStateRole)
+        else:
+            # Deselect all items
+            for i in range(self.comboBox_value.count()):
+                self.comboBox_value.setItemData(i, Qt.Unchecked, Qt.CheckStateRole)
+
+    def toggleSelectAll2(self):
+        # Example: select all items in a QListWidget or QTreeWidget
+        for i in range(self.listWidget.count()):
+            item = self.listWidget.item(i)
+            item.setCheckState(Qt.Checked)
+
+    def toggleSelectAll(self, state):
+        # 阻止在 updateList() 期间触发 itemChanged（可选，避免干扰）
+        #self.listWidget.blockSignals(True)
+        
+        check_state = Qt.Checked if state == Qt.Checked else Qt.Unchecked
+        for i in range(self.listWidget.count()):
+            item = self.listWidget.item(i)
+            if item:  # 安全检查
+                item.setCheckState(check_state)
+        
+        self.listWidget.blockSignals(False)
+
+
+
 
 
 
