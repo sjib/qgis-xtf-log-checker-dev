@@ -254,6 +254,7 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
             self.errorLayer.removeSelection()
 
         request = QgsFeatureRequest().setFilterExpression(expression)
+        #request.addOrderBy('$id')
         if self.errorLayer:
             for error_feat in self.errorLayer.getFeatures(request):
                 error_id = error_feat.attributes()[error_id_idx]
@@ -419,40 +420,32 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         print(f"✅ Switched to layer: {target_layer.name()}")
 
 
-
-    def toggleSelectAll1(self, state):
-        """Triggered when 'Select All' checkbox is toggled."""
-        if state == Qt.Checked:
-            # Select all items
-            for i in range(self.comboBox_value.count()):
-                self.comboBox_value.setItemData(i, Qt.Checked, Qt.CheckStateRole)
-        else:
-            # Deselect all items
-            for i in range(self.comboBox_value.count()):
-                self.comboBox_value.setItemData(i, Qt.Unchecked, Qt.CheckStateRole)
-
-    def toggleSelectAll2(self):
-        # Example: select all items in a QListWidget or QTreeWidget
-        for i in range(self.listWidget.count()):
-            item = self.listWidget.item(i)
-            item.setCheckState(Qt.Checked)
-
     def SelectAll(self):
         self.listWidget.blockSignals(True)
+        self.errorLayer.startEditing()
         for i in range(self.listWidget.count()):
             item = self.listWidget.item(i)
             if item: 
-                item.setCheckState(Qt.Checked)
-        
+                try:
+                    item.setCheckState(Qt.CheckState.Checked)
+                except AttributeError:
+                    item.setCheckState(Qt.Checked)
+                self.setFeatureCheckState(self.errorLayer, item)
+        self.errorLayer.commitChanges()
         self.listWidget.blockSignals(False)
 
     def ClearAll(self):
         self.listWidget.blockSignals(True)
+        self.errorLayer.startEditing()
         for i in range(self.listWidget.count()):
             item = self.listWidget.item(i)
             if item: 
-                item.setCheckState(Qt.Unchecked)
-        
+                try:
+                    item.setCheckState(Qt.CheckState.Unchecked)
+                except AttributeError:
+                    item.setCheckState(Qt.Unchecked)
+                self.setFeatureCheckState(self.errorLayer, item) 
+        self.errorLayer.commitChanges()
         self.listWidget.blockSignals(False)
 
 
