@@ -14,7 +14,7 @@ the Free Software Foundation; either version 3 of the License, or
 
 import os
 from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem, QCheckBox,QSizePolicy,QSpacerItem
+from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem, QCheckBox,QSizePolicy,QPushButton
 from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject,QgsWkbTypes
 from qgis.PyQt.QtCore import QCoreApplication,Qt
 from qgis.PyQt.QtWidgets import QWidget,QComboBox,QHBoxLayout, QLabel,QToolButton, QStyle
@@ -86,9 +86,11 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         self.comboBox_value.addItem("All")
         self.comboBox_value.setMinimumWidth(150)
         
-        # add a 'select all' button
-        self.checkBox_selectAll = QCheckBox(QCoreApplication.translate('generals', 'Select_All'))
-        self.checkBox_selectAll.stateChanged.connect(self.toggleSelectAll)
+        # add a 'select all' and 'clear all' button
+        self.buttonSelectAll = QPushButton(QCoreApplication.translate('generals', 'Select All'))
+        self.buttonClearAll = QPushButton(QCoreApplication.translate('generals', 'Clear All'))
+        self.buttonSelectAll.clicked.connect(self.SelectAll)
+        self.buttonClearAll.clicked.connect(self.ClearAll)
         
         # add widgets to horizontal layout
         self.filterLayout.addWidget(self.label_field)
@@ -96,7 +98,8 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         self.filterLayout.addWidget(self.label_value)
         self.filterLayout.addWidget(self.comboBox_value)
         #self.filterLayout.addWidget(self.label_selectAll)
-        self.filterLayout.addWidget(self.checkBox_selectAll)
+        self.filterLayout.addWidget(self.buttonSelectAll)
+        self.filterLayout.addWidget(self.buttonClearAll)
 
         # insert the horizontal layout below infos checkbox
         parent_layout = self.verticalLayout
@@ -356,7 +359,6 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
              self.close()
 
 
-
     def switchGeometryLayer(self, index):
         """Switch between Point / Line / Surface / No Geometry layers."""
         if not hasattr(self, 'iface') or not self.iface:
@@ -435,15 +437,21 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
             item = self.listWidget.item(i)
             item.setCheckState(Qt.Checked)
 
-    def toggleSelectAll(self, state):
-        # 阻止在 updateList() 期间触发 itemChanged（可选，避免干扰）
-        #self.listWidget.blockSignals(True)
-        
-        check_state = Qt.Checked if state == Qt.Checked else Qt.Unchecked
+    def SelectAll(self):
+        self.listWidget.blockSignals(True)
         for i in range(self.listWidget.count()):
             item = self.listWidget.item(i)
-            if item:  # 安全检查
-                item.setCheckState(check_state)
+            if item: 
+                item.setCheckState(Qt.Checked)
+        
+        self.listWidget.blockSignals(False)
+
+    def ClearAll(self):
+        self.listWidget.blockSignals(True)
+        for i in range(self.listWidget.count()):
+            item = self.listWidget.item(i)
+            if item: 
+                item.setCheckState(Qt.Unchecked)
         
         self.listWidget.blockSignals(False)
 
