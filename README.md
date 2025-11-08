@@ -23,9 +23,15 @@ The following dialog will appear:
 
 ![Dialog](xtflogchecker_dialog.png)
 
-2. Select the error log xtf file you want to be visualized.
+2. A. Select the error log xtf file you want to be visualized.
 
 ![Dialog - select file](xtflogchecker_dialog2.png)
+
+   B. You can also load an XTF URL by copying the address and pasting it into the input box.
+<img src='xtflogchecker_url_input_box.png' alt="Icon" width="64%">
+
+C. You can also load a URL from an online validation service, such as [ilicop.ch](https://ilicop.ch/).
+<img src='xtflogchecker_url_input_box2.png' alt="Icon" width="65%">
 
 3. Click on 'Create Layer' - the error log will be analyzed and the results will be displayed.
 
