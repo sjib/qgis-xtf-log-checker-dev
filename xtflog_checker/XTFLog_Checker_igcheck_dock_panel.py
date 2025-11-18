@@ -162,7 +162,7 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
 
         # Add a label to show the count of displayed errors
         self.countLabel = QLabel()
-        self.countLabel.setStyleSheet("color: gray; font-size: 10pt;")
+        self.countLabel.setStyleSheet("color: gray; font-size: 12pt;")
         parent_layout.insertWidget(
             parent_layout.indexOf(self.filterLayout) + 1,
             self.countLabel
