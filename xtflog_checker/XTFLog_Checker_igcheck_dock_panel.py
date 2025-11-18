@@ -159,6 +159,14 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         titleLayout.addStretch()
         # Apply as dock title bar
         self.setTitleBarWidget(titleWidget)
+
+        # Add a label to show the count of displayed errors
+        self.countLabel = QLabel()
+        self.countLabel.setStyleSheet("color: gray; font-size: 12pt;")
+        parent_layout.insertWidget(
+            parent_layout.indexOf(self.filterLayout) + 1,
+            self.countLabel
+        )
         
         # Initialize
         self.geometryLayers = {}
@@ -286,6 +294,10 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
 
                 widgetItem.setToolTip(tooltip_text)
         self.isUpdating = False
+        
+        # Update count label
+        count = self.listWidget.count()
+        self.countLabel.setText(QCoreApplication.translate('generals', f'Items: {count}'))
 
         sender = self.sender()
         if sender is self.comboBox_value:
