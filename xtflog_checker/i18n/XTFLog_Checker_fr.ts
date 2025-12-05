@@ -171,17 +171,17 @@
     <message>
         <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="90"/>
         <source>Select All</source>
-        <translation>Seleziona tutto</translation>
+        <translation>Tout sélectionner</translation>
     </message>
     <message>
         <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="91"/>
         <source>Clear All</source>
-        <translation>Deseleziona tutto</translation>
+        <translation>Tout désélectionner</translation>
     </message>
     <message>
         <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="300"/>
         <source>Items: {count}</source>
-        <translation>Elementi:{count}</translation>
+        <translation>Éléments :{count}</translation>
     </message>
 </context>
 </TS>
