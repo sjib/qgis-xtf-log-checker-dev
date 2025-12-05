@@ -4,12 +4,12 @@
 <context>
     <name>generals</name>
     <message>
-        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="97"/>
+        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="121"/>
         <source>Show errors</source>
         <translation>Afficher erreures</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="98"/>
+        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="122"/>
         <source>Show warnings</source>
         <translation>Afficher avertissements</translation>
     </message>
@@ -59,7 +59,7 @@
         <translation>Aucun fichier XTF-Log valide au chemin d&apos;accès spécifié</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_dock_panel.py" line="42"/>
+        <location filename="../XTFLog_Checker_dock_panel.py" line="57"/>
         <source>Error log</source>
         <translation>XTFLog-Checker log des erreurs</translation>
     </message>
@@ -109,7 +109,7 @@
         <translation>Le fichier XTF sélectionné ne contient aucune erreur igCheck, veuillez en sélectionner un autre</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="43"/>
+        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="52"/>
         <source>Show infos</source>
         <translation>Afficher les infos</translation>
     </message>
@@ -159,14 +159,29 @@
         <translation>Aucune géométrie ou erreur valide</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="61"/>
+        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="76"/>
         <source>Field:</source>
         <translation>Champ :</translation>
     </message>
     <message>
-        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="68"/>
+        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="83"/>
         <source>Value:</source>
         <translation>Valeur :</translation>
+    </message>
+    <message>
+        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="90"/>
+        <source>Select All</source>
+        <translation>Seleziona tutto</translation>
+    </message>
+    <message>
+        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="91"/>
+        <source>Clear All</source>
+        <translation>Deseleziona tutto</translation>
+    </message>
+    <message>
+        <location filename="../XTFLog_Checker_igcheck_dock_panel.py" line="300"/>
+        <source>Items: {count}</source>
+        <translation>Elementi:{count}</translation>
     </message>
 </context>
 </TS>

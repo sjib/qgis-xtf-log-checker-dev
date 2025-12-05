@@ -21,17 +21,17 @@ Please report any problems you experience by submitting an issue.
 
 The following dialog will appear:
 
-![Dialog](xtflogchecker_dialog.png)
+<img src='xtflogchecker_dialog.png' alt="Icon" width="60%">
 
 2. A. Select the error log xtf file you want to be visualized.
 
-![Dialog - select file](xtflogchecker_dialog2.png)
+<img src='xtflogchecker_dialog2.png' alt="Icon" width="60%">
 
    B. You can also load an XTF URL by copying the address and pasting it into the input box.
-<img src='xtflogchecker_url_input_box.png' alt="Icon" width="64%">
+<img src='xtflogchecker_url_input_box.png' alt="Icon" width="60%">
 
 C. You can also load a URL from an online validation service, such as [ilicop.ch](https://ilicop.ch/).
-<img src='xtflogchecker_url_input_box2.png' alt="Icon" width="65%">
+<img src='xtflogchecker_url_input_box2.png' alt="Icon" width="60%">
 
 3. Click on 'Create Layer' - the error log will be analyzed and the results will be displayed.
 
@@ -39,14 +39,14 @@ C. You can also load a URL from an online validation service, such as [ilicop.ch
 
 ### Ilivalidator
 
-![Ilivalidator](xtflogchecker_ilivalidator_errors.png)
+<img src='xtflogchecker_ilivalidator_errors.png' alt="Icon" width="90%">
 
 All Errors are displayed on the same layer. The latest version also supports the display of Errors without an assigned geometry. 
 
 
 ### iG/Check
 
-![iG/Check](xtflogchecker_igcheck_errors.png)
+<img src='xtflogchecker_igcheck_errors.png' alt="Icon" width="90%">
 
 Since Release 1.1.0 also iG/Check Errors logs are supported. For each Geometry type an extra layer is created and connected with the respective errors. There are four possible layers:
 
@@ -59,39 +59,50 @@ The following INTERLIS Error log versions are supported:
 https://www.infogrips.ch/models/2.3/ErrorLog14.ili (since release 1.1.0)
 and https://www.infogrips.ch/models/2.4/ErrorLog24.ili (since release 1.2.0)
 
+
+
 ### Change layer
 
 Click on the XTFLog-Checker Icon ![Icon](xtflogchecker_icon.png) again
 
 In the following dialog choose the layer you want to be displayed:
 
-![Change layer](xtflogchecker_dialog_change_layer.png)
+<img src='xtflogchecker_dialog_change_layer.png' alt="Icon" width="60%">
 
 Or you can change the layer from the “Layer Switch” dropdown in the panel.
 
-<img src='xtflogchecker_dialog_change_layer2.png' alt="Icon" width="50%">
+<img src='xtflogchecker_dialog_change_layer2.png' alt="Icon" width="60%">
 
 ### Filter errors by category
 
 You can filter the errors by their categories: [errors, warnings, info]:
 
-![Filter](xtflogchecker_filter_error_warning.png)
+<img src='xtflogchecker_filter_error_warning.png' alt="Icon" width="90%">
 
-![Filter Info](xtflogchecker_filter_info.png)
+<img src='xtflogchecker_filter_info.png' alt="Icon" width="90%">
 
+### Advanced selection
 You can also use the advanced selection, to choose Class,Tid,Topic,ErrorId,Description,After selecting, the first item will be automatically highlighted and zoomed in.
 
-<img src='Advanced_Selection.png' alt="Icon" width="50%">
+<img src='xtflogchecker_advanced_selection.png' alt="Icon" width="60%">
+
+### Select All and Clear All buttons
+
+You can use the 'Select All' button to select all items in the current list.
+<img src='xtflogchecker_select_all.png' alt="Icon" width="90%">
+
+'Clear All' will deselect all items.
+<img src='xtflogchecker_clear_all.png' alt="Icon" width="90%">
 
 ### Tooltip with additional information
 
-You can get additional information about the error with the tooltip:
+When hovering over an entry, a floating box appears displaying the corresponding TID, Module, Error_ID, Model, Description, Topic, Class, Tid, Name, and Value information. 
 
-![Tooltip - additional information](xtflogchecker_igcheck_no_geometry_errors.png)
+<img src='xtflogchecker_tooltip.png' alt="Icon" width="60%">
+
 
 Further details you get by opening the attribute table of the respective layer
-
-![Attribute table](xtflogchecker_attribute_table.png)
+<img src='xtflogchecker_attribute_table.png' alt="Icon" width="90%">
 
 
 ## License
