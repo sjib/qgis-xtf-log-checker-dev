@@ -15,7 +15,7 @@ the Free Software Foundation; either version 3 of the License, or
 import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
-from qgis.PyQt.QtCore import Qt, QMetaType,QCoreApplication
+from qgis.PyQt.QtCore import Qt,QCoreApplication,QMetaType
 from qgis.core import QgsVectorLayer, QgsField, QgsProject, QgsFeature, QgsGeometry, QgsPointXY, QgsEditorWidgetSetup, QgsMapLayerType,QgsMessageLog
 # 3.7.2025
 from qgis.core import Qgis
@@ -39,7 +39,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
         self.btn_run.setEnabled(file_path != None)
         self.btn_cancel.clicked.connect(self.closePlugin)
         self.btn_cancel.setText(QCoreApplication.translate('generals', 'Cancel'))
-        self.attributeNames = ["Type", "Message","Description","Category", "Tid", "ObjTag","Model", "TechId","Topic", "UserId","Class","Name","Value", "IliQName", "DataSource", "Line", "TechDetails"]
+        self.attributeNames = ["ErrorId","Type","Message","Description","Category","Tid","ObjTag","Model","TechId","Topic","UserId","Class","Name","Value","IliQName","DataSource","Line","TechDetails","Module"]
         self.btn_show_error_log.clicked.connect(self.showErrorLog)
         self.btn_show_error_log.setText(QCoreApplication.translate('generals', 'Show error log'))
         self.newLayerGroupBox.setTitle(QCoreApplication.translate('generals', 'Upload xtf-log file'))
@@ -133,24 +133,26 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             errorLayer = QgsVectorLayer("Point?crs=epsg:2056", fileName + "_Ilivalidator_Errors", "memory")
             errorDataProvider = errorLayer.dataProvider()
 
-            errorDataProvider.addAttributes([QgsField("ErrorId", QMetaType.QString),
-                                            QgsField("Type", QMetaType.QString),
-                                            QgsField("Message", QMetaType.QString),
-                                            QgsField("Description", QMetaType.QString),
-                                            QgsField("Category", QMetaType.QString),
-                                            QgsField("Tid", QMetaType.QString),
-                                            QgsField("ObjTag", QMetaType.QString),
-                                            QgsField("Model", QMetaType.QString),
-                                            QgsField("TechId", QMetaType.QString),
-                                            QgsField("Topic", QMetaType.QString),
-                                            QgsField("UserId", QMetaType.QString),
-                                            QgsField("Class", QMetaType.QString),
-                                            QgsField("Name", QMetaType.QString),
-                                            QgsField("Value", QMetaType.QString),
-                                            QgsField("IliQName", QMetaType.QString),
-                                            QgsField("DataSource", QMetaType.QString),
-                                            QgsField("Line", QMetaType.QString),
-                                            QgsField("TechDetails", QMetaType.QString),
+            errorDataProvider.addAttributes([QgsField("TID", QMetaType.Type.QString),
+                                            QgsField("ErrorId", QMetaType.Type.QString),
+                                            QgsField("Type", QMetaType.Type.QString),
+                                            QgsField("Message", QMetaType.Type.QString),
+                                            QgsField("Description", QMetaType.Type.QString),
+                                            QgsField("Category", QMetaType.Type.QString),
+                                            QgsField("Tid", QMetaType.Type.QString),
+                                            QgsField("ObjTag", QMetaType.Type.QString),
+                                            QgsField("Model", QMetaType.Type.QString),
+                                            QgsField("TechId", QMetaType.Type.QString),
+                                            QgsField("Topic", QMetaType.Type.QString),
+                                            QgsField("UserId", QMetaType.Type.QString),
+                                            QgsField("Class", QMetaType.Type.QString),
+                                            QgsField("Name", QMetaType.Type.QString),
+                                            QgsField("Value", QMetaType.Type.QString),
+                                            QgsField("IliQName", QMetaType.Type.QString),
+                                            QgsField("DataSource", QMetaType.Type.QString),
+                                            QgsField("Line", QMetaType.Type.QString),
+                                            QgsField("TechDetails", QMetaType.Type.QString),
+                                            QgsField("Module", QMetaType.Type.QString),
                                             QgsField("Checked", QMetaType.Type.Int)])
 
             errorLayer.updateFields()
@@ -169,7 +171,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
 
             interlisPrefix = '{http://www.interlis.ch/INTERLIS2.3}'
             for child in root.iter(interlisPrefix + 'IliVErrors.ErrorLog.Error'):
-                ErrorId = child.attrib["TID"]
+                TID = child.attrib["TID"]
                 attributes = {}
                 
                 # Extract all specified attributes from the error element
@@ -198,7 +200,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                                     pass  # Ignore invalid coordinate values
                     
                     # Set attribute values, including a default 'Checked' column (set to 0)
-                    attributeList = [ErrorId]
+                    attributeList = [TID]
                     attributeList.extend(list(attributes.values()))
                     attributeList.append(0)  # 0 means 'unchecked'
                     f.setAttributes(attributeList)
@@ -225,24 +227,26 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             layer = QgsVectorLayer(f"{geometry_type}?crs=epsg:2056", layer_name, "memory")
             pr = layer.dataProvider()
             pr.addAttributes([
-                QgsField("ErrorId", QMetaType.QString),
-                QgsField("Type", QMetaType.QString),
-                QgsField("Message", QMetaType.QString),
-                QgsField("Description", QMetaType.QString),
-                QgsField("Category", QMetaType.QString),
-                QgsField("Tid", QMetaType.QString),
-                QgsField("ObjTag", QMetaType.QString),
-                QgsField("Model", QMetaType.QString),
-                QgsField("TechId", QMetaType.QString),
-                QgsField("Topic", QMetaType.QString),
-                QgsField("UserId", QMetaType.QString),
-                QgsField("Class", QMetaType.QString),
-                QgsField("Name", QMetaType.QString),
-                QgsField("Value", QMetaType.QString),
-                QgsField("IliQName", QMetaType.QString),
-                QgsField("DataSource", QMetaType.QString),
-                QgsField("Line", QMetaType.QString),
-                QgsField("TechDetails", QMetaType.QString),
+                QgsField("TID", QMetaType.Type.QString),
+                QgsField("ErrorId", QMetaType.Type.QString),
+                QgsField("Type", QMetaType.Type.QString),
+                QgsField("Message", QMetaType.Type.QString),
+                QgsField("Description", QMetaType.Type.QString),
+                QgsField("Category", QMetaType.Type.QString),
+                QgsField("Tid", QMetaType.Type.QString),
+                QgsField("ObjTag", QMetaType.Type.QString),
+                QgsField("Model", QMetaType.Type.QString),
+                QgsField("TechId", QMetaType.Type.QString),
+                QgsField("Topic", QMetaType.Type.QString),
+                QgsField("UserId", QMetaType.Type.QString),
+                QgsField("Class", QMetaType.Type.QString),
+                QgsField("Name", QMetaType.Type.QString),
+                QgsField("Value", QMetaType.Type.QString),
+                QgsField("IliQName", QMetaType.Type.QString),
+                QgsField("DataSource", QMetaType.Type.QString),
+                QgsField("Line", QMetaType.Type.QString),
+                QgsField("TechDetails", QMetaType.Type.QString),
+                QgsField("Module", QMetaType.Type.QString),
                 QgsField("Checked", QMetaType.Type.Int)
             ])
             layer.updateFields()
@@ -315,19 +319,25 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
         no_geom_layer = create_error_layer(fileName + "_igChecker_NoGeometry", "None") if has_nogeom else None
         # Step 3: Insert features
         for child in root.iter(interlisPrefix + 'ErrorLog14.Errors.Error'):
-            ErrorId = child.attrib["TID"]
+            TID = child.attrib["TID"]
             attributes = {}
             for attributeName in self.attributeNames:
                 element = child.find(interlisPrefix + attributeName)
                 attributes[attributeName] = (element.text if element is not None else "")
             # add name and value for attributes
             user_attributes = child.find(interlisPrefix + 'UserAttributes')
+
             if user_attributes is not None:
+                names = []
+                values = []
                 for user_attr in user_attributes.findall(interlisPrefix + 'ErrorLog14.Errors.Attribute'):
                     name_element = user_attr.find(interlisPrefix + 'Name')
                     value_element = user_attr.find(interlisPrefix + 'Value')
-                    attributes['Name'] = name_element.text
-                    attributes['Value'] = value_element.text
+                    names.append(name_element.text)
+                    values.append(value_element.text)
+                    attributes['Name'] = "; ".join(names)
+                    attributes['Value'] = "; ".join(values)
+
 
 
             if attributes["Category"] not in ['error', 'warning','info']:
@@ -338,7 +348,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
 
             if geom_element is None or len(geom_element) == 0:
                 if no_geom_layer:
-                    attributeList = [ErrorId]
+                    attributeList = [TID]
                     attributeList.extend(list(attributes.values()))
                     attributeList.append(0)
                     f.setAttributes(attributeList)
@@ -355,7 +365,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                     y = coordinate.find(interlisPrefix + 'C2').text
                     if x and y:
                         f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(x), float(y))))
-                        attributeList = [ErrorId]
+                        attributeList = [TID]
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)  # Checked
                         f.setAttributes(attributeList)
@@ -371,7 +381,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                         points.append(QgsPointXY(float(x), float(y)))
                     if points:
                         f.setGeometry(QgsGeometry.fromPolylineXY(points))
-                        attributeList = [ErrorId]
+                        attributeList = [TID]
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)
                         f.setAttributes(attributeList)
@@ -387,7 +397,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                         points.append(QgsPointXY(float(x), float(y)))
                     if points:
                         f.setGeometry(QgsGeometry.fromPolygonXY([points]))
-                        attributeList = [ErrorId]
+                        attributeList = [TID]
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)
                         f.setAttributes(attributeList)
@@ -426,24 +436,26 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             layer = QgsVectorLayer(f"{geometry_type}?crs=epsg:2056", layer_name, "memory")
             pr = layer.dataProvider()
             pr.addAttributes([
-                QgsField("ErrorId", QMetaType.QString),
-                QgsField("Type", QMetaType.QString),
-                QgsField("Message", QMetaType.QString),
-                QgsField("Description", QMetaType.QString),
-                QgsField("Category", QMetaType.QString),
-                QgsField("Tid", QMetaType.QString),
-                QgsField("ObjTag", QMetaType.QString),
-                QgsField("Model", QMetaType.QString),
-                QgsField("TechId", QMetaType.QString),
-                QgsField("Topic", QMetaType.QString),
-                QgsField("UserId", QMetaType.QString),
-                QgsField("Class", QMetaType.QString),
-                QgsField("Name", QMetaType.QString),
-                QgsField("Value", QMetaType.QString),
-                QgsField("IliQName", QMetaType.QString),
-                QgsField("DataSource", QMetaType.QString),
-                QgsField("Line", QMetaType.QString),
-                QgsField("TechDetails", QMetaType.QString),
+                QgsField("TID", QMetaType.Type.QString),
+                QgsField("ErrorId", QMetaType.Type.QString),
+                QgsField("Type", QMetaType.Type.QString),
+                QgsField("Message", QMetaType.Type.QString),
+                QgsField("Description", QMetaType.Type.QString),
+                QgsField("Category", QMetaType.Type.QString),
+                QgsField("Tid", QMetaType.Type.QString),
+                QgsField("ObjTag", QMetaType.Type.QString),
+                QgsField("Model", QMetaType.Type.QString),
+                QgsField("TechId", QMetaType.Type.QString),
+                QgsField("Topic", QMetaType.Type.QString),
+                QgsField("UserId", QMetaType.Type.QString),
+                QgsField("Class", QMetaType.Type.QString),
+                QgsField("Name", QMetaType.Type.QString),
+                QgsField("Value", QMetaType.Type.QString),
+                QgsField("IliQName", QMetaType.Type.QString),
+                QgsField("DataSource", QMetaType.Type.QString),
+                QgsField("Line", QMetaType.Type.QString),
+                QgsField("TechDetails", QMetaType.Type.QString),
+                QgsField("Module", QMetaType.Type.QString),
                 QgsField("Checked", QMetaType.Type.Int)
             ])
             layer.updateFields()
@@ -523,7 +535,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
         
         # Step 3: Insert features
         for child in root.iter(interlisPrefix +'Error'):
-            ErrorId = child.attrib.get('{http://www.interlis.ch/xtf/2.4/INTERLIS}tid', '')
+            TID = child.attrib.get('{http://www.interlis.ch/xtf/2.4/INTERLIS}tid', '')
             attributes = {}
             for attributeName in self.attributeNames:
                 element = child.find( interlisPrefix + attributeName)
@@ -537,7 +549,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             f = QgsFeature()
             if geom_element is None or len(geom_element) == 0:
                 if no_geom_layer:
-                    attributeList = [ErrorId]
+                    attributeList = [TID]
                     attributeList.extend(list(attributes.values()))
                     attributeList.append(0)
                     f.setAttributes(attributeList)
@@ -552,7 +564,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                     y = child.find('.//geom:c2',namespaces).text
                     if x and y:
                         f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(float(x), float(y))))
-                        attributeList = [ErrorId]
+                        attributeList = [TID]
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)  # Checked
                         f.setAttributes(attributeList)
@@ -568,7 +580,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                         points.append(QgsPointXY(float(x), float(y)))
                     if points:
                         f.setGeometry(QgsGeometry.fromPolylineXY(points))
-                        attributeList = [ErrorId]
+                        attributeList = [TID]
                         #self.iface.messageBar().pushMessage(ErrorId ,level=Qgis.Warning, duration=8)
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)
@@ -585,7 +597,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                         points.append(QgsPointXY(float(x), float(y)))
                     if points:
                         f.setGeometry(QgsGeometry.fromPolygonXY([points]))
-                        attributeList = [ErrorId]
+                        attributeList = [TID]
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)
                         f.setAttributes(attributeList)
@@ -621,11 +633,30 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
 
 
 
+    # def showErrorLog(self):
+    #     for layer in QgsProject.instance().mapLayers().values():
+    #         if layer.name() == self.layerbox.currentText():
+    #             self.errorLayer = layer
+    #             self.showDock()
+
     def showErrorLog(self):
+        # Remove the dock widget from QGIS interface
+        if hasattr(self, "dock") and self.dock is not None:
+            try:
+                self.iface.removeDockWidget(self.dock)
+                self.dock.close()
+                self.dock.deleteLater()
+            except Exception as e:
+                print(f" Failed to remove previous dock: {e}")
+            self.dock = None
+
+        # Step 2: Find the selected layer and show the new dock
         for layer in QgsProject.instance().mapLayers().values():
             if layer.name() == self.layerbox.currentText():
                 self.errorLayer = layer
                 self.showDock()
+                break  
+
 
     def hideCheckedColumns(self, layer):
         config = layer.attributeTableConfig()
@@ -651,7 +682,14 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             self.dock = XTFLog_igCheck_DockPanel(self.iface, self.errorLayer)
         else:
             self.dock = XTFLog_DockPanel(self.iface, self.errorLayer)
-        self.iface.addTabifiedDockWidget(Qt.RightDockWidgetArea, self.dock, raiseTab=True)
+        #self.iface.addTabifiedDockWidget(Qt.RightDockWidgetArea, self.dock, raiseTab=True)
+        #support for both PyQt5 and PyQt6
+        try:
+            dock_area = Qt.DockWidgetArea.RightDockWidgetArea
+        except AttributeError:
+            dock_area = Qt.RightDockWidgetArea
+        self.iface.addTabifiedDockWidget(dock_area, self.dock, raiseTab=True)
+
         self.close()
 
 

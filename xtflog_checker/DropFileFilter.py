@@ -32,7 +32,12 @@ class DropFileFilter(QObject):
         return False
 
     def eventFilter(self, obj, event):
-        if event.type() == QEvent.Drop:
+        #support for both PyQt5 and PyQt6
+        try:
+            drop_event_type = QEvent.Type.Drop
+        except AttributeError:
+            drop_event_type = QEvent.Drop
+        if event.type() == drop_event_type:
             if len(event.mimeData().urls()) == 1:
                 if self.is_handling_requested(event.mimeData().urls()[0].toLocalFile()):
                     if self.parent.handle_dropped_file(event.mimeData().urls()[0].toLocalFile()):

@@ -17,7 +17,7 @@ import os
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem,QSizePolicy
 from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QCoreApplication,Qt
 
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -29,7 +29,22 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
         self.iface = iface
         self.setupUi(self)
         #fix the panel too big problem because of long file name
-        self.layerName.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        #self.layerName.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
+        try:
+            size_ignored = QSizePolicy.Policy.Ignored
+            size_preferred = QSizePolicy.Policy.Preferred
+        except AttributeError:
+            size_ignored = QSizePolicy.Ignored
+            size_preferred = QSizePolicy.Preferred
+
+        self.layerName.setSizePolicy(size_ignored, size_preferred)
+
+        # make font bold in Qt5 and Qt6 and keep the "_" on windows
+        current_font = self.layerName.font()
+        current_font.setBold(True)
+        self.layerName.setFont(current_font)
+        self.layerName.setTextFormat(Qt.TextFormat.PlainText)
+        
         self.errorLayer = errorLayer
         QgsProject.instance().layerWillBeRemoved[str].connect(self.layersWillBeRemoved)
         self.checkBox_errors.stateChanged.connect(self.evaluateCheckButtons)
@@ -50,7 +65,7 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
 
     def updateList(self):
         self.isUpdating = True
-        error_idx = self.errorLayer.fields().indexOf('ErrorId')
+        TID_idx = self.errorLayer.fields().indexOf('TID')
         message_idx = self.errorLayer.fields().indexOf('Message')
         self.listWidget.clear()
         if self.checkBox_errors.isChecked() and self.checkBox_warnings.isChecked():
@@ -65,9 +80,11 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
         request = QgsFeatureRequest().setFilterExpression(expression)
         if self.errorLayer:
             for error_feat in self.errorLayer.getFeatures(request):
-                listEntry = error_feat.attributes()[error_idx] + " -- " + error_feat.attributes()[message_idx]
+                listEntry = error_feat.attributes()[TID_idx] + " -- " + error_feat.attributes()[message_idx]
                 widgetItem = QListWidgetItem(listEntry, self.listWidget)
-                widgetItem.setCheckState(error_feat['Checked'])
+                #support for both PyQt5 and PyQt6
+                state = Qt.CheckState(error_feat['Checked'])
+                widgetItem.setCheckState(state)
         self.isUpdating = False
 
     def evaluateCheckButtons(self):
@@ -77,14 +94,17 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
         if not self.listWidget.selectedItems():
             return
         selectedErrorId = self.listWidget.selectedItems()[0].text().split(" -- ")[0]
-        expression = " \"ErrorId\" = '{}' ".format(selectedErrorId)
+        expression = " \"TID\" = '{}' ".format(selectedErrorId)
         try:
-            self.errorLayer.selectByExpression(expression, QgsVectorLayer.SetSelection)
-            self.iface.mapCanvas().zoomToSelected(self.errorLayer)
+            # Get the feature (only one per TID)
             request = QgsFeatureRequest().setFilterExpression(expression)
-            features = self.errorLayer.getFeatures(request)
-            for feature in features:
+            feature = next(self.errorLayer.getFeatures(request), None)
+
+            # Only flash if the feature has geometry
+            if feature is not None and feature.geometry() is not None:
                 self.iface.mapCanvas().flashGeometries([feature.geometry()])
+            # Do NOT call zoomToSelected if geometry is None
+
         except:
             print("Could not select anything")
 
@@ -97,7 +117,7 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
 
     def setFeatureCheckState(self, layer, item):
         selectedErrorId = item.text().split(" -- ")[0]
-        expression = " \"ErrorId\" = '{}' ".format(selectedErrorId)
+        expression = " \"TID\" = '{}' ".format(selectedErrorId)
         request = QgsFeatureRequest().setFilterExpression(expression)
         features = layer.getFeatures()
         field_idx = layer.fields().indexOf('Checked')
