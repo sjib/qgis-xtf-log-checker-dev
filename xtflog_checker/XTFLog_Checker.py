@@ -88,5 +88,7 @@ class XTFLog_Checker:
 
         # Show the dialog
         self.dlg.show()
+        self.dlg.raise_()
+        self.dlg.activateWindow()
 
     
