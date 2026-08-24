@@ -179,8 +179,8 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                     element = child.find(interlisPrefix + attributeName)
                     attributes[attributeName] = (element.text if element is not None else "")
                 
-                # Process only 'Error' or 'Warning' types
-                if attributes["Type"] == 'Error' or attributes["Type"] == 'Warning':
+                # Process all types of the IliVErrors 'Type' enumeration
+                if attributes["Type"] in ('Error', 'Warning', 'Info', 'DetailInfo'):
                     f = QgsFeature()
                     
                     # Try to extract geometry if available
