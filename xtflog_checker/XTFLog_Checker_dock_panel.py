@@ -15,7 +15,7 @@ the Free Software Foundation; either version 3 of the License, or
 import os
 
 from qgis.PyQt import uic
-from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem,QSizePolicy,QCheckBox
+from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem,QSizePolicy,QCheckBox,QLabel
 from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject
 from qgis.PyQt.QtCore import QCoreApplication,Qt
 
@@ -72,6 +72,15 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
                 self.checkBox_infos
             )
 
+        # add a label to show the count of displayed errors
+        self.countLabel = QLabel()
+        self.countLabel.setStyleSheet("color: gray; font-size: 12pt;")
+        if parent_layout is not None:
+            parent_layout.insertWidget(
+                parent_layout.indexOf(self.checkBox_infos) + 1,
+                self.countLabel
+            )
+
         self.listWidget.itemSelectionChanged.connect(self.selectionChanged)
         self.listWidget.itemChanged.connect(self.updateItem)
         self.setWindowTitle(QCoreApplication.translate('generals', 'ilivalidator Error log'))
@@ -108,6 +117,10 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
                 state = Qt.CheckState(error_feat['Checked'])
                 widgetItem.setCheckState(state)
         self.isUpdating = False
+
+        # update the displayed item count
+        count = self.listWidget.count()
+        self.countLabel.setText(QCoreApplication.translate('generals', f'Items: {count}'))
 
     def evaluateCheckButtons(self):
         self.updateList()
