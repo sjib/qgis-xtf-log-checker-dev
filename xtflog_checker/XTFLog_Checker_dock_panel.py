@@ -310,13 +310,20 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
             request = QgsFeatureRequest().setFilterExpression(expression)
             feature = next(self.errorLayer.getFeatures(request), None)
 
-            # Only flash if the feature has geometry.
+            # Only zoom/flash if the feature has geometry.
             # Features without geometry return a null QgsGeometry, not None,
             # so isNull() is needed here - most 'Info' entries have no coordinate.
             geometry = feature.geometry() if feature is not None else None
             if geometry is not None and not geometry.isNull():
+                # narrow the selection down to the clicked error and move the
+                # canvas to it, same behaviour as the igCheck panel
+                self.errorLayer.selectByExpression(expression, QgsVectorLayer.SetSelection)
+                self.iface.mapCanvas().zoomToSelected(self.errorLayer)
                 self.iface.mapCanvas().flashGeometries([geometry])
-            # Do NOT call zoomToSelected if there is no geometry
+            # Entries without a coordinate leave canvas and selection untouched:
+            # unlike igCheck, geometry and geometry-less errors share one layer
+            # here, and zoomToSelected() on a null geometry would move the
+            # canvas to an empty extent.
 
         except:
             print("Could not select anything")
