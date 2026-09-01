@@ -91,7 +91,7 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
         self.label_field = QLabel(QCoreApplication.translate('generals', 'Field:'))
         self.label_field.setMaximumWidth(50)
         self.comboBox_field = QComboBox()
-        self.comboBox_field.addItems(["All", "Tid", "ObjTag", "Model", "Topic", "Class", "DataSource"])
+        self.comboBox_field.addItems(["All", "Message", "Tid", "ObjTag", "Model", "Topic", "Class", "DataSource"])
         self.comboBox_field.setMaximumWidth(100)
 
         self.label_value = QLabel(QCoreApplication.translate('generals', 'Value:'))
