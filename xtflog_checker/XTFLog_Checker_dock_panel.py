@@ -146,6 +146,12 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
         self.isUpdating = True
         TID_idx = self.errorLayer.fields().indexOf('TID')
         message_idx = self.errorLayer.fields().indexOf('Message')
+        type_idx = self.errorLayer.fields().indexOf('Type')
+        objtag_idx = self.errorLayer.fields().indexOf('ObjTag')
+        tid_idx = self.errorLayer.fields().indexOf('Tid')
+        dataSource_idx = self.errorLayer.fields().indexOf('DataSource')
+        line_idx = self.errorLayer.fields().indexOf('Line')
+        techDetails_idx = self.errorLayer.fields().indexOf('TechDetails')
         self.listWidget.clear()
         expressions = []
         if self.checkBox_errors.isChecked():
@@ -192,6 +198,32 @@ class XTFLog_DockPanel(QDockWidget, FORM_CLASS):
                 #support for both PyQt5 and PyQt6
                 state = Qt.CheckState(error_feat['Checked'])
                 widgetItem.setCheckState(state)
+
+                # Create the tooltip text. Model/Topic/Class don't exist as
+                # attributes in the IliVErrors model, so they are derived from
+                # ObjTag here instead of being read directly from the feature.
+                tooltip_text = f"<b>TID:</b> {error_feat.attributes()[TID_idx]}<br>"
+                if type_idx != -1 and error_feat.attributes()[type_idx]:
+                    tooltip_text += f"<b>Type:</b> {error_feat.attributes()[type_idx]}<br>"
+                tooltip_text += f"<b>Message:</b> {error_feat.attributes()[message_idx]}<br>"
+
+                objtag = error_feat.attributes()[objtag_idx] if objtag_idx != -1 else ""
+                if objtag:
+                    parts = objtag.split('.')
+                    for field_name, position in OBJTAG_DERIVED_FIELDS.items():
+                        if len(parts) > position and parts[position]:
+                            tooltip_text += f"<b>{field_name}:</b> {parts[position]}<br>"
+
+                if tid_idx != -1 and error_feat.attributes()[tid_idx]:
+                    tooltip_text += f"<b>Tid:</b> {error_feat.attributes()[tid_idx]}<br>"
+                if dataSource_idx != -1 and error_feat.attributes()[dataSource_idx]:
+                    tooltip_text += f"<b>DataSource:</b> {error_feat.attributes()[dataSource_idx]}<br>"
+                if line_idx != -1 and error_feat.attributes()[line_idx]:
+                    tooltip_text += f"<b>Line:</b> {error_feat.attributes()[line_idx]}<br>"
+                if techDetails_idx != -1 and error_feat.attributes()[techDetails_idx]:
+                    tooltip_text += f"<b>TechDetails:</b> {error_feat.attributes()[techDetails_idx]}<br>"
+
+                widgetItem.setToolTip(tooltip_text)
         self.isUpdating = False
 
         # update the displayed item count
