@@ -12,6 +12,7 @@ the Free Software Foundation; either version 3 of the License, or
 (at your option) any later version.
 """
 
+import math
 import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
@@ -27,6 +28,46 @@ from .XTFLog_Checker_igcheck_dock_panel import XTFLog_igCheck_DockPanel
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ui/dialog_base.ui'))
+
+# Area of use of CH1903+ / LV95 (EPSG:2056), the CRS all error layers are
+# created with, rounded outwards to full kilometres.
+LV95_BOUNDS = (2485000.0, 1074000.0, 2838000.0, 1300000.0)
+
+
+def readLV95Point(coordElement, interlisPrefix):
+    """Read C1/C2 from a COORD element and return a QgsPointXY.
+
+    Returns None when the coordinate is missing, unparsable or outside the
+    LV95 area of use. ilivalidator writes the offending coordinate into
+    <Geometry> even when the error itself is 'value ... is out of range in
+    attribute Lage', so a single broken value would otherwise stretch the
+    layer extent thousands of kilometres and make the real errors invisible
+    on the canvas.
+    """
+    if coordElement is None:
+        return None
+
+    x_elem = coordElement.find(interlisPrefix + 'C1')
+    y_elem = coordElement.find(interlisPrefix + 'C2')
+    if x_elem is None or y_elem is None:
+        return None
+
+    try:
+        x = float(x_elem.text)
+        y = float(y_elem.text)
+    except (TypeError, ValueError):
+        return None
+
+    # float() happily accepts 'NaN' and 'inf' - ilivalidator does emit NaN for
+    # missing height values, so those would slip through a bare try/except.
+    if not (math.isfinite(x) and math.isfinite(y)):
+        return None
+
+    min_x, min_y, max_x, max_y = LV95_BOUNDS
+    if not (min_x <= x <= max_x and min_y <= y <= max_y):
+        return None
+
+    return QgsPointXY(x, y)
 
 class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, iface, file_path=None, parent=None):
@@ -170,35 +211,35 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             QgsProject.instance().addMapLayer(errorLayer)
 
             interlisPrefix = '{http://www.interlis.ch/INTERLIS2.3}'
+            rejectedCoordinates = 0
             for child in root.iter(interlisPrefix + 'IliVErrors.ErrorLog.Error'):
                 TID = child.attrib["TID"]
                 attributes = {}
-                
+
                 # Extract all specified attributes from the error element
                 for attributeName in self.attributeNames:
                     element = child.find(interlisPrefix + attributeName)
                     attributes[attributeName] = (element.text if element is not None else "")
-                
+
                 # Process all types of the IliVErrors 'Type' enumeration
                 if attributes["Type"] in ('Error', 'Warning', 'Info', 'DetailInfo'):
                     f = QgsFeature()
-                    
+
                     # Try to extract geometry if available
                     GeometryElement = child.find(interlisPrefix + 'Geometry')
                     if GeometryElement is not None:
                         Coordinate = GeometryElement.find(interlisPrefix + 'COORD')
-                        if Coordinate is not None:
-                            x_elem = Coordinate.find(interlisPrefix + 'C1')
-                            y_elem = Coordinate.find(interlisPrefix + 'C2')
-                            if x_elem is not None and y_elem is not None:
-                                try:
-                                    x = float(x_elem.text)
-                                    y = float(y_elem.text)
-                                    # Set geometry as a point
-                                    f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(x, y)))
-                                except ValueError:
-                                    pass  # Ignore invalid coordinate values
-                    
+                        point = readLV95Point(Coordinate, interlisPrefix)
+                        if point is not None:
+                            # Set geometry as a point
+                            f.setGeometry(QgsGeometry.fromPointXY(point))
+                        elif Coordinate is not None:
+                            # The error is still listed, just without a position
+                            rejectedCoordinates += 1
+                            QgsMessageLog.logMessage(
+                                f"Discarded implausible coordinate of error {TID}: {attributes['Message']}",
+                                'XTFLog_Checker', Qgis.Warning)
+
                     # Set attribute values, including a default 'Checked' column (set to 0)
                     attributeList = [TID]
                     attributeList.extend(list(attributes.values()))
@@ -217,6 +258,14 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             errorLayer.updateExtents()
             self.errorLayer = errorLayer
             self.hideCheckedColumns(errorLayer)
+
+            if rejectedCoordinates > 0:
+                # Don't drop these silently - the errors are in the list but
+                # cannot be located on the map, see the log panel for details
+                self.iface.messageBar().pushMessage(
+                    QCoreApplication.translate('generals', 'Implausible coordinates'),
+                    QCoreApplication.translate('generals', f'{rejectedCoordinates} error(s) have a coordinate outside the LV95 extent and are shown without a position.'),
+                    level=Qgis.Warning, duration=10)
 
             if(self.errorLayer != None):
                 self.showDock()
