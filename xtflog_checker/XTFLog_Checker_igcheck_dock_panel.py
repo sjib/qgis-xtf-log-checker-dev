@@ -120,7 +120,10 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
 
         # connect signals
         self.comboBox_field.currentIndexChanged.connect(self.updateValueCombo)
-        self.comboBox_value.currentIndexChanged.connect(self.updateList)
+        # not connected straight to updateList: picking a value should also jump
+        # to the first match, and a slot taking an extra argument would receive
+        # the combo's index in it
+        self.comboBox_value.currentIndexChanged.connect(self.valueFilterChanged)
 
         self.errorLayer = errorLayer
         QgsProject.instance().layerWillBeRemoved[str].connect(self.layersWillBeRemoved)
@@ -327,11 +330,17 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         count = self.listWidget.count()
         self.countLabel.setText(QCoreApplication.translate('generals', f'Items: {count}'))
 
-        sender = self.sender()
-        if sender is self.comboBox_value:
-            if self.listWidget.count() > 0:
-                self.listWidget.setCurrentRow(0)
+    def selectFirstItem(self):
+        """Jump to the first entry, which moves the canvas to that error.
 
+        Called after either filter combo changes, so the map follows the filter.
+        """
+        if self.listWidget.count() > 0:
+            self.listWidget.setCurrentRow(0)
+
+    def valueFilterChanged(self):
+        self.updateList()
+        self.selectFirstItem()
 
     def updateValueCombo(self):
         if not self.errorLayer:
@@ -348,6 +357,7 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         finally:
             self.comboBox_value.blockSignals(False)
         self.updateList()
+        self.selectFirstItem()
 
     def uniqueFieldValues(self, selected_field):
         """Distinct values of the chosen filter field, sorted."""
