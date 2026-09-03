@@ -23,6 +23,15 @@ from qgis.PyQt.QtWidgets import QWidget,QComboBox,QHBoxLayout, QLabel,QToolButto
 
 
 
+# Item role holding the QgsFeature id of the entry a list item was built from.
+# Looking a feature up by its TID means a full table scan of the memory layer,
+# which is what made 'Select All' take minutes on large logs.
+try:
+    FEATURE_ID_ROLE = Qt.ItemDataRole.UserRole
+except AttributeError:
+    FEATURE_ID_ROLE = Qt.UserRole
+
+
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ui/dock_panel.ui'))
 
@@ -120,6 +129,12 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         self.checkBox_errors.setEnabled(self.errorLayer != None)
         self.checkBox_errors.setText(QCoreApplication.translate('generals', 'Show errors'))
         self.checkBox_warnings.setText(QCoreApplication.translate('generals', 'Show warnings'))
+        # Entries are single-line, so every item has the same height. Saying so
+        # lets the view skip the per-item sizeHint pass it would otherwise redo
+        # on every change - without this, ticking thousands of checkboxes in
+        # 'Select All' spends seconds in layout.
+        self.listWidget.setUniformItemSizes(True)
+
         self.listWidget.itemSelectionChanged.connect(self.selectionChanged)
         self.listWidget.itemChanged.connect(self.updateItem)
 
@@ -225,6 +240,13 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         tid_idx = self.errorLayer.fields().indexOf('Tid')
         value_idx = self.errorLayer.fields().indexOf('Value')
         name_idx = self.errorLayer.fields().indexOf('Name')
+        checked_idx = self.errorLayer.fields().indexOf('Checked')
+
+        # Filling the list emits itemChanged three times per entry (text, check
+        # state, tooltip) and repaints as it goes - all of them discarded by the
+        # isUpdating guard.
+        self.listWidget.blockSignals(True)
+        self.listWidget.setUpdatesEnabled(False)
 
         self.listWidget.clear()
 
@@ -265,36 +287,42 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         #request.addOrderBy('$id')
         if self.errorLayer:
             for error_feat in self.errorLayer.getFeatures(request):
-                error_id = error_feat.attributes()[error_id_idx]
-                error_message = error_feat.attributes()[message_idx]
-                TID_value = error_feat.attributes()[TID_idx]
+                # attributes() rebuilds the whole attribute list on every call,
+                # so read it once per feature rather than once per field
+                attrs = error_feat.attributes()
+                error_id = attrs[error_id_idx]
+                error_message = attrs[message_idx]
+                TID_value = attrs[TID_idx]
                 listEntry = f"{TID_value} -- {error_message} ({error_id})"
                 widgetItem = QListWidgetItem(listEntry, self.listWidget)
-                #widgetItem.setCheckState(error_feat['Checked'])
+                widgetItem.setData(FEATURE_ID_ROLE, error_feat.id())
                 #support for both PyQt5 and PyQt6
-                state = Qt.CheckState(error_feat['Checked'])
+                state = Qt.CheckState(attrs[checked_idx])
                 widgetItem.setCheckState(state)
 
                 # Create the tooltip text
-                tooltip_text = f"<b>TID:</b> {error_feat.attributes()[TID_idx]}<br>" 
-                tooltip_text += f"<b>Module:</b> {error_feat.attributes()[Module_idx]}<br>"
-                tooltip_text += f"<b>Error ID:</b> {error_feat.attributes()[error_id_idx]}<br>"
-                tooltip_text += f"<b>Model:</b> {error_feat.attributes()[Model_idx]}<br>"
-                tooltip_text += f"<b>Description:</b> {error_feat.attributes()[message_idx]}<br>"
-                tooltip_text += f"<b>Topic:</b> {error_feat.attributes()[Topic_idx]}<br>"
-                
-                if class_idx != -1 and error_feat.attributes()[class_idx]:
-                    tooltip_text += f"<b>Class:</b> {error_feat.attributes()[class_idx]}<br>"
-                if tid_idx != -1 and error_feat.attributes()[tid_idx]:
-                    tooltip_text += f"<b>Tid:</b> {error_feat.attributes()[tid_idx]}<br>"
-                if name_idx != -1 and error_feat.attributes()[name_idx]:
-                    tooltip_text += f"<b>Name:</b> {error_feat.attributes()[name_idx]}<br>"
-                if value_idx != -1 and error_feat.attributes()[value_idx]:
-                    tooltip_text += f"<b>Value:</b> {error_feat.attributes()[value_idx]}<br>"
+                tooltip_text = f"<b>TID:</b> {TID_value}<br>"
+                tooltip_text += f"<b>Module:</b> {attrs[Module_idx]}<br>"
+                tooltip_text += f"<b>Error ID:</b> {error_id}<br>"
+                tooltip_text += f"<b>Model:</b> {attrs[Model_idx]}<br>"
+                tooltip_text += f"<b>Description:</b> {error_message}<br>"
+                tooltip_text += f"<b>Topic:</b> {attrs[Topic_idx]}<br>"
+
+                if class_idx != -1 and attrs[class_idx]:
+                    tooltip_text += f"<b>Class:</b> {attrs[class_idx]}<br>"
+                if tid_idx != -1 and attrs[tid_idx]:
+                    tooltip_text += f"<b>Tid:</b> {attrs[tid_idx]}<br>"
+                if name_idx != -1 and attrs[name_idx]:
+                    tooltip_text += f"<b>Name:</b> {attrs[name_idx]}<br>"
+                if value_idx != -1 and attrs[value_idx]:
+                    tooltip_text += f"<b>Value:</b> {attrs[value_idx]}<br>"
 
                 widgetItem.setToolTip(tooltip_text)
+
+        self.listWidget.setUpdatesEnabled(True)
+        self.listWidget.blockSignals(False)
         self.isUpdating = False
-        
+
         # Update count label
         count = self.listWidget.count()
         self.countLabel.setText(QCoreApplication.translate('generals', f'Items: {count}'))
@@ -308,27 +336,35 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
     def updateValueCombo(self):
         if not self.errorLayer:
             return
-        # clear old values
-        self.comboBox_value.clear()
-        self.comboBox_value.addItem("All")  # default option
-        # get selected field
-        selected_field = self.comboBox_field.currentText()
-        # "All" means no filtering, so keep only "All"
+
+        # Refilling the box fires currentIndexChanged twice - once for clear(),
+        # once for the first entry - and each one used to rebuild the whole
+        # list. Fill it silently instead and rebuild once, at the end.
+        self.comboBox_value.blockSignals(True)
+        try:
+            self.comboBox_value.clear()
+            self.comboBox_value.addItems(
+                ["All"] + self.uniqueFieldValues(self.comboBox_field.currentText()))
+        finally:
+            self.comboBox_value.blockSignals(False)
+        self.updateList()
+
+    def uniqueFieldValues(self, selected_field):
+        """Distinct values of the chosen filter field, sorted."""
+        # "All" means no filtering, so the box keeps only its "All" entry
         if selected_field == "All":
-            return
+            return []
         # check if field exists in layer
         field_idx = self.errorLayer.fields().indexOf(selected_field)
         if field_idx == -1:
-            return
+            return []
         # collect unique values for the chosen field
         unique_vals = set()
         for feat in self.errorLayer.getFeatures():
             val = feat.attributes()[field_idx]
             if val:
                 unique_vals.add(str(val))
-        # add them to value combobox
-        for v in sorted(unique_vals):
-            self.comboBox_value.addItem(v)
+        return sorted(unique_vals)
 
 
 
@@ -338,12 +374,11 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
     def selectionChanged(self):
         if not self.listWidget.selectedItems():
             return
-        selectedErrorId = self.listWidget.selectedItems()[0].text().split(" -- ")[0]
-        expression = " \"TID\" = '{}' ".format(selectedErrorId)
+        featureId = self.listWidget.selectedItems()[0].data(FEATURE_ID_ROLE)
         try:
-            self.errorLayer.selectByExpression(expression, QgsVectorLayer.SetSelection)
+            self.errorLayer.selectByIds([featureId])
             self.iface.mapCanvas().zoomToSelected(self.errorLayer)
-            request = QgsFeatureRequest().setFilterExpression(expression)
+            request = QgsFeatureRequest().setFilterFid(featureId)
             features = self.errorLayer.getFeatures(request)
             for feature in features:
                 self.iface.mapCanvas().flashGeometries([feature.geometry()])
@@ -358,14 +393,8 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
                 self.errorLayer.commitChanges()
 
     def setFeatureCheckState(self, layer, item):
-        selectedErrorId = item.text().split(" -- ")[0]
-        expression = " \"TID\" = '{}' ".format(selectedErrorId)
-        request = QgsFeatureRequest().setFilterExpression(expression)
-        features = layer.getFeatures()
         field_idx = layer.fields().indexOf('Checked')
-        features = layer.getFeatures(request)
-        for feat in features:
-            layer.changeAttributeValue(feat.id(), field_idx, item.checkState())
+        layer.changeAttributeValue(item.data(FEATURE_ID_ROLE), field_idx, item.checkState())
 
     def layersWillBeRemoved(self, layerId):
          if(layerId == self.errorLayerId):
@@ -433,32 +462,44 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
 
 
     def SelectAll(self):
-        self.listWidget.blockSignals(True)
-        self.errorLayer.startEditing()
-        for i in range(self.listWidget.count()):
-            item = self.listWidget.item(i)
-            if item: 
-                try:
-                    item.setCheckState(Qt.CheckState.Checked)
-                except AttributeError:
-                    item.setCheckState(Qt.Checked)
-                self.setFeatureCheckState(self.errorLayer, item)
-        self.errorLayer.commitChanges()
-        self.listWidget.blockSignals(False)
+        self.setAllCheckStates(True)
 
     def ClearAll(self):
+        self.setAllCheckStates(False)
+
+    def setAllCheckStates(self, checked):
+        """Tick or untick every listed entry and mirror it onto the layer.
+
+        The layer is silenced while the loop runs. QGIS panels that listen to
+        attributeValueChanged - the attribute table and the undo/redo view -
+        redraw on every single change, which made this take about a minute on an
+        11k entry log even though the same loop costs 0.1 s outside QGIS. The
+        edit buffer still records everything, so commitChanges() below notifies
+        the listeners once, with the whole set of changes.
+        """
+        #support for both PyQt5 and PyQt6
+        try:
+            state = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+        except AttributeError:
+            state = Qt.Checked if checked else Qt.Unchecked
+
+        field_idx = self.errorLayer.fields().indexOf('Checked')
         self.listWidget.blockSignals(True)
+        self.listWidget.setUpdatesEnabled(False)
         self.errorLayer.startEditing()
-        for i in range(self.listWidget.count()):
-            item = self.listWidget.item(i)
-            if item: 
-                try:
-                    item.setCheckState(Qt.CheckState.Unchecked)
-                except AttributeError:
-                    item.setCheckState(Qt.Unchecked)
-                self.setFeatureCheckState(self.errorLayer, item) 
+        self.errorLayer.blockSignals(True)
+        try:
+            for i in range(self.listWidget.count()):
+                item = self.listWidget.item(i)
+                item.setCheckState(state)
+                self.errorLayer.changeAttributeValue(
+                    item.data(FEATURE_ID_ROLE), field_idx, state)
+        finally:
+            self.errorLayer.blockSignals(False)
+            self.listWidget.setUpdatesEnabled(True)
+            self.listWidget.blockSignals(False)
         self.errorLayer.commitChanges()
-        self.listWidget.blockSignals(False)
+        self.errorLayer.triggerRepaint()
 
 
 
