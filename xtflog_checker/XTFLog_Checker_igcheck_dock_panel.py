@@ -15,12 +15,22 @@ the Free Software Foundation; either version 3 of the License, or
 import os
 from qgis.PyQt import uic
 from qgis.PyQt.QtWidgets import QDockWidget, QListWidgetItem, QCheckBox,QSizePolicy,QPushButton
-from qgis.core import QgsVectorLayer, QgsFeatureRequest, QgsProject,QgsWkbTypes
+from qgis.core import QgsFeatureRequest, QgsProject,QgsWkbTypes
 from qgis.PyQt.QtCore import QCoreApplication,Qt
 from qgis.PyQt.QtWidgets import QWidget,QComboBox,QHBoxLayout, QLabel,QToolButton, QStyle
+from .XTFLog_Checker_dock_panel import NO_GEOMETRY, checkStateToInt
 
 
 
+
+
+# Item role holding the QgsFeature id of the entry a list item was built from.
+# Looking a feature up by its TID means a full table scan of the memory layer,
+# which is what made 'Select All' take minutes on large logs.
+try:
+    FEATURE_ID_ROLE = Qt.ItemDataRole.UserRole
+except AttributeError:
+    FEATURE_ID_ROLE = Qt.UserRole
 
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
@@ -111,7 +121,10 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
 
         # connect signals
         self.comboBox_field.currentIndexChanged.connect(self.updateValueCombo)
-        self.comboBox_value.currentIndexChanged.connect(self.updateList)
+        # not connected straight to updateList: picking a value should also jump
+        # to the first match, and a slot taking an extra argument would receive
+        # the combo's index in it
+        self.comboBox_value.currentIndexChanged.connect(self.valueFilterChanged)
 
         self.errorLayer = errorLayer
         QgsProject.instance().layerWillBeRemoved[str].connect(self.layersWillBeRemoved)
@@ -120,6 +133,12 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         self.checkBox_errors.setEnabled(self.errorLayer != None)
         self.checkBox_errors.setText(QCoreApplication.translate('generals', 'Show errors'))
         self.checkBox_warnings.setText(QCoreApplication.translate('generals', 'Show warnings'))
+        # Entries are single-line, so every item has the same height. Saying so
+        # lets the view skip the per-item sizeHint pass it would otherwise redo
+        # on every change - without this, ticking thousands of checkboxes in
+        # 'Select All' spends seconds in layout.
+        self.listWidget.setUniformItemSizes(True)
+
         self.listWidget.itemSelectionChanged.connect(self.selectionChanged)
         self.listWidget.itemChanged.connect(self.updateItem)
 
@@ -225,6 +244,13 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
         tid_idx = self.errorLayer.fields().indexOf('Tid')
         value_idx = self.errorLayer.fields().indexOf('Value')
         name_idx = self.errorLayer.fields().indexOf('Name')
+        checked_idx = self.errorLayer.fields().indexOf('Checked')
+
+        # Filling the list emits itemChanged three times per entry (text, check
+        # state, tooltip) and repaints as it goes - all of them discarded by the
+        # isUpdating guard.
+        self.listWidget.blockSignals(True)
+        self.listWidget.setUpdatesEnabled(False)
 
         self.listWidget.clear()
 
@@ -255,80 +281,116 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
                 else:
                     expression = field_expr
 
-        # now apply expression to layer
-        if expression:
-            self.errorLayer.selectByExpression(expression, QgsVectorLayer.SetSelection)
-        else:
-            self.errorLayer.removeSelection()
-
+        # Only fetch what the list shows. Fields referenced by the filter
+        # expression are added by QGIS itself, unfetched ones come back NULL,
+        # so the indexes below stay valid.
+        category_idx = self.errorLayer.fields().indexOf('Category')
         request = QgsFeatureRequest().setFilterExpression(expression)
+        request.setFlags(NO_GEOMETRY)
+        request.setSubsetOfAttributes([idx for idx in (
+            TID_idx, error_id_idx, message_idx, Module_idx, Model_idx, Topic_idx,
+            class_idx, tid_idx, value_idx, name_idx, checked_idx, category_idx) if idx != -1])
         #request.addOrderBy('$id')
+
+        # Collected while filling the list, then selected in one go: running
+        # selectByExpression() with the same expression first evaluated it over
+        # the whole layer a second time.
+        listedIds = []
         if self.errorLayer:
             for error_feat in self.errorLayer.getFeatures(request):
-                error_id = error_feat.attributes()[error_id_idx]
-                error_message = error_feat.attributes()[message_idx]
-                TID_value = error_feat.attributes()[TID_idx]
+                listedIds.append(error_feat.id())
+                # attributes() rebuilds the whole attribute list on every call,
+                # so read it once per feature rather than once per field
+                attrs = error_feat.attributes()
+                error_id = attrs[error_id_idx]
+                error_message = attrs[message_idx]
+                TID_value = attrs[TID_idx]
                 listEntry = f"{TID_value} -- {error_message} ({error_id})"
                 widgetItem = QListWidgetItem(listEntry, self.listWidget)
-                #widgetItem.setCheckState(error_feat['Checked'])
+                widgetItem.setData(FEATURE_ID_ROLE, error_feat.id())
                 #support for both PyQt5 and PyQt6
-                state = Qt.CheckState(error_feat['Checked'])
+                state = Qt.CheckState(attrs[checked_idx])
                 widgetItem.setCheckState(state)
 
                 # Create the tooltip text
-                tooltip_text = f"<b>TID:</b> {error_feat.attributes()[TID_idx]}<br>" 
-                tooltip_text += f"<b>Module:</b> {error_feat.attributes()[Module_idx]}<br>"
-                tooltip_text += f"<b>Error ID:</b> {error_feat.attributes()[error_id_idx]}<br>"
-                tooltip_text += f"<b>Model:</b> {error_feat.attributes()[Model_idx]}<br>"
-                tooltip_text += f"<b>Description:</b> {error_feat.attributes()[message_idx]}<br>"
-                tooltip_text += f"<b>Topic:</b> {error_feat.attributes()[Topic_idx]}<br>"
-                
-                if class_idx != -1 and error_feat.attributes()[class_idx]:
-                    tooltip_text += f"<b>Class:</b> {error_feat.attributes()[class_idx]}<br>"
-                if tid_idx != -1 and error_feat.attributes()[tid_idx]:
-                    tooltip_text += f"<b>Tid:</b> {error_feat.attributes()[tid_idx]}<br>"
-                if name_idx != -1 and error_feat.attributes()[name_idx]:
-                    tooltip_text += f"<b>Name:</b> {error_feat.attributes()[name_idx]}<br>"
-                if value_idx != -1 and error_feat.attributes()[value_idx]:
-                    tooltip_text += f"<b>Value:</b> {error_feat.attributes()[value_idx]}<br>"
+                tooltip_text = f"<b>TID:</b> {TID_value}<br>"
+                tooltip_text += f"<b>Module:</b> {attrs[Module_idx]}<br>"
+                tooltip_text += f"<b>Error ID:</b> {error_id}<br>"
+                tooltip_text += f"<b>Model:</b> {attrs[Model_idx]}<br>"
+                tooltip_text += f"<b>Description:</b> {error_message}<br>"
+                tooltip_text += f"<b>Topic:</b> {attrs[Topic_idx]}<br>"
+
+                if class_idx != -1 and attrs[class_idx]:
+                    tooltip_text += f"<b>Class:</b> {attrs[class_idx]}<br>"
+                if tid_idx != -1 and attrs[tid_idx]:
+                    tooltip_text += f"<b>Tid:</b> {attrs[tid_idx]}<br>"
+                if name_idx != -1 and attrs[name_idx]:
+                    tooltip_text += f"<b>Name:</b> {attrs[name_idx]}<br>"
+                if value_idx != -1 and attrs[value_idx]:
+                    tooltip_text += f"<b>Value:</b> {attrs[value_idx]}<br>"
 
                 widgetItem.setToolTip(tooltip_text)
+
+        # Same result as before: highlight the listed errors on the map, or
+        # clear the selection when no filter is active.
+        if expression:
+            self.errorLayer.selectByIds(listedIds)
+        else:
+            self.errorLayer.removeSelection()
+
+        self.listWidget.setUpdatesEnabled(True)
+        self.listWidget.blockSignals(False)
         self.isUpdating = False
-        
+
         # Update count label
         count = self.listWidget.count()
         self.countLabel.setText(QCoreApplication.translate('generals', f'Items: {count}'))
 
-        sender = self.sender()
-        if sender is self.comboBox_value:
-            if self.listWidget.count() > 0:
-                self.listWidget.setCurrentRow(0)
+    def selectFirstItem(self):
+        """Jump to the first entry, which moves the canvas to that error.
 
+        Called after either filter combo changes, so the map follows the filter.
+        """
+        if self.listWidget.count() > 0:
+            self.listWidget.setCurrentRow(0)
+
+    def valueFilterChanged(self):
+        self.updateList()
+        self.selectFirstItem()
 
     def updateValueCombo(self):
         if not self.errorLayer:
             return
-        # clear old values
-        self.comboBox_value.clear()
-        self.comboBox_value.addItem("All")  # default option
-        # get selected field
-        selected_field = self.comboBox_field.currentText()
-        # "All" means no filtering, so keep only "All"
+
+        # Refilling the box fires currentIndexChanged twice - once for clear(),
+        # once for the first entry - and each one used to rebuild the whole
+        # list. Fill it silently instead and rebuild once, at the end.
+        self.comboBox_value.blockSignals(True)
+        try:
+            self.comboBox_value.clear()
+            self.comboBox_value.addItems(
+                ["All"] + self.uniqueFieldValues(self.comboBox_field.currentText()))
+        finally:
+            self.comboBox_value.blockSignals(False)
+        self.updateList()
+        self.selectFirstItem()
+
+    def uniqueFieldValues(self, selected_field):
+        """Distinct values of the chosen filter field, sorted."""
+        # "All" means no filtering, so the box keeps only its "All" entry
         if selected_field == "All":
-            return
+            return []
         # check if field exists in layer
         field_idx = self.errorLayer.fields().indexOf(selected_field)
         if field_idx == -1:
-            return
-        # collect unique values for the chosen field
+            return []
+        # Distinct values are computed by QGIS instead of copying every
+        # feature into Python
         unique_vals = set()
-        for feat in self.errorLayer.getFeatures():
-            val = feat.attributes()[field_idx]
+        for val in self.errorLayer.uniqueValues(field_idx):
             if val:
                 unique_vals.add(str(val))
-        # add them to value combobox
-        for v in sorted(unique_vals):
-            self.comboBox_value.addItem(v)
+        return sorted(unique_vals)
 
 
 
@@ -338,12 +400,11 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
     def selectionChanged(self):
         if not self.listWidget.selectedItems():
             return
-        selectedErrorId = self.listWidget.selectedItems()[0].text().split(" -- ")[0]
-        expression = " \"TID\" = '{}' ".format(selectedErrorId)
+        featureId = self.listWidget.selectedItems()[0].data(FEATURE_ID_ROLE)
         try:
-            self.errorLayer.selectByExpression(expression, QgsVectorLayer.SetSelection)
+            self.errorLayer.selectByIds([featureId])
             self.iface.mapCanvas().zoomToSelected(self.errorLayer)
-            request = QgsFeatureRequest().setFilterExpression(expression)
+            request = QgsFeatureRequest().setFilterFid(featureId)
             features = self.errorLayer.getFeatures(request)
             for feature in features:
                 self.iface.mapCanvas().flashGeometries([feature.geometry()])
@@ -353,19 +414,27 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
     def updateItem(self, item):
         if not self.isUpdating:
             if self.errorLayer:
-                self.errorLayer.startEditing()
-                self.setFeatureCheckState(self.errorLayer, item)
-                self.errorLayer.commitChanges()
+                self.writeCheckStates({item.data(FEATURE_ID_ROLE): item.checkState()})
 
-    def setFeatureCheckState(self, layer, item):
-        selectedErrorId = item.text().split(" -- ")[0]
-        expression = " \"TID\" = '{}' ".format(selectedErrorId)
-        request = QgsFeatureRequest().setFilterExpression(expression)
-        features = layer.getFeatures()
-        field_idx = layer.fields().indexOf('Checked')
-        features = layer.getFeatures(request)
-        for feat in features:
-            layer.changeAttributeValue(feat.id(), field_idx, item.checkState())
+    def writeCheckStates(self, statesByFid):
+        """Store check states on the layer, keyed by feature id.
+
+        Written straight into the memory provider rather than through
+        startEditing()/commitChanges(): 'Checked' is an internal column, and an
+        edit session costs a full layer repaint and attribute table reload per
+        commit - on every single click. commitChanges() also cleared the undo
+        stack, so nothing is lost. It additionally means a layer the user has
+        put into edit mode is no longer committed behind their back.
+        """
+        if not statesByFid:
+            return
+        field_idx = self.errorLayer.fields().indexOf('Checked')
+        changes = {fid: {field_idx: checkStateToInt(state)}
+                   for fid, state in statesByFid.items()}
+        self.errorLayer.dataProvider().changeAttributeValues(changes)
+        # Only matters if the symbology refers to 'Checked'; the render is
+        # asynchronous and cached, so it is cheap otherwise.
+        self.errorLayer.triggerRepaint()
 
     def layersWillBeRemoved(self, layerId):
          if(layerId == self.errorLayerId):
@@ -433,32 +502,31 @@ class XTFLog_igCheck_DockPanel(QDockWidget, FORM_CLASS):
 
 
     def SelectAll(self):
-        self.listWidget.blockSignals(True)
-        self.errorLayer.startEditing()
-        for i in range(self.listWidget.count()):
-            item = self.listWidget.item(i)
-            if item: 
-                try:
-                    item.setCheckState(Qt.CheckState.Checked)
-                except AttributeError:
-                    item.setCheckState(Qt.Checked)
-                self.setFeatureCheckState(self.errorLayer, item)
-        self.errorLayer.commitChanges()
-        self.listWidget.blockSignals(False)
+        self.setAllCheckStates(True)
 
     def ClearAll(self):
+        self.setAllCheckStates(False)
+
+    def setAllCheckStates(self, checked):
+        """Tick or untick every listed entry and mirror it onto the layer."""
+        #support for both PyQt5 and PyQt6
+        try:
+            state = Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+        except AttributeError:
+            state = Qt.Checked if checked else Qt.Unchecked
+
+        states = {}
         self.listWidget.blockSignals(True)
-        self.errorLayer.startEditing()
-        for i in range(self.listWidget.count()):
-            item = self.listWidget.item(i)
-            if item: 
-                try:
-                    item.setCheckState(Qt.CheckState.Unchecked)
-                except AttributeError:
-                    item.setCheckState(Qt.Unchecked)
-                self.setFeatureCheckState(self.errorLayer, item) 
-        self.errorLayer.commitChanges()
-        self.listWidget.blockSignals(False)
+        self.listWidget.setUpdatesEnabled(False)
+        try:
+            for i in range(self.listWidget.count()):
+                item = self.listWidget.item(i)
+                item.setCheckState(state)
+                states[item.data(FEATURE_ID_ROLE)] = state
+        finally:
+            self.listWidget.setUpdatesEnabled(True)
+            self.listWidget.blockSignals(False)
+        self.writeCheckStates(states)
 
 
 

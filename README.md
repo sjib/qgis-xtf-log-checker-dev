@@ -7,7 +7,7 @@ XTFLog-Checker is a [QGIS](https://www.qgis.org/en/site/) plugin that lets you d
 Install the [QGIS XTFLog-Checker](https://plugins.qgis.org/plugins) directly in QGIS by using the [Plugins menu](http://docs.qgis.org/latest/en/docs/user_manual/plugins/plugins.html).
 
 ## Qt6 supported
-Beginning with version 1.30, Qt6 support has been added. The plugin is now compatible with both Qt5 and Qt6 builds of QGIS.
+Beginning with version 1.3.0, Qt6 support has been added. The plugin is now compatible with both Qt5 and Qt6 builds of QGIS.
 As QGIS based on Qt6 is still in its early testing phase, some bugs may occur.
 Please report any problems you experience by submitting an issue.
 
@@ -41,7 +41,7 @@ C. You can also load a URL from an online validation service, such as [ilicop.ch
 
 <img src='screenshots/xtflogchecker_ilivalidator_errors.png' alt="Icon" width="90%">
 
-All Errors are displayed on the same layer. The latest version also supports the display of Errors without an assigned geometry. 
+All Errors are displayed on the same layer. The latest version also supports the display of Errors without an assigned geometry. There have field/value filter function.
 
 
 ### iG/Check

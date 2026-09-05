@@ -12,6 +12,7 @@ the Free Software Foundation; either version 3 of the License, or
 (at your option) any later version.
 """
 
+import math
 import os
 from qgis.PyQt import uic
 from qgis.PyQt import QtWidgets
@@ -27,6 +28,59 @@ from .XTFLog_Checker_igcheck_dock_panel import XTFLog_igCheck_DockPanel
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'ui/dialog_base.ui'))
+
+# Area of use of CH1903+ / LV95 (EPSG:2056), the CRS all error layers are
+# created with, rounded outwards to full kilometres.
+LV95_BOUNDS = (2485000.0, 1074000.0, 2838000.0, 1300000.0)
+
+
+def readLV95Point(coordElement, interlisPrefix):
+    """Read C1/C2 from a COORD element and return a QgsPointXY.
+
+    Returns None when the coordinate is missing, unparsable or outside the
+    LV95 area of use. ilivalidator writes the offending coordinate into
+    <Geometry> even when the error itself is 'value ... is out of range in
+    attribute Lage', so a single broken value would otherwise stretch the
+    layer extent thousands of kilometres and make the real errors invisible
+    on the canvas.
+    """
+    if coordElement is None:
+        return None
+
+    x_elem = coordElement.find(interlisPrefix + 'C1')
+    y_elem = coordElement.find(interlisPrefix + 'C2')
+    if x_elem is None or y_elem is None:
+        return None
+
+    try:
+        x = float(x_elem.text)
+        y = float(y_elem.text)
+    except (TypeError, ValueError):
+        return None
+
+    # float() happily accepts 'NaN' and 'inf' - ilivalidator does emit NaN for
+    # missing height values, so those would slip through a bare try/except.
+    if not (math.isfinite(x) and math.isfinite(y)):
+        return None
+
+    min_x, min_y, max_x, max_y = LV95_BOUNDS
+    if not (min_x <= x <= max_x and min_y <= y <= max_y):
+        return None
+
+    return QgsPointXY(x, y)
+
+
+def addFeaturesInBulk(layer, features):
+    """Insert all features into the layer's provider with a single call.
+
+    Adding them one at a time costs a Python->C++ round trip, a provider lock
+    and a spatial index update per error, which dominates the load time of
+    large logs.
+    """
+    if layer is None or not features:
+        return
+    layer.dataProvider().addFeatures(features)
+
 
 class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
     def __init__(self, iface, file_path=None, parent=None):
@@ -167,56 +221,70 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
             if len(existing_error_layer) != 0:
                 QgsProject.instance().removeMapLayer(existing_error_layer[0])
 
-            QgsProject.instance().addMapLayer(errorLayer)
-
             interlisPrefix = '{http://www.interlis.ch/INTERLIS2.3}'
+            rejectedCoordinates = 0
+            rejectedMessages = []
+            features = []
             for child in root.iter(interlisPrefix + 'IliVErrors.ErrorLog.Error'):
                 TID = child.attrib["TID"]
                 attributes = {}
-                
+
                 # Extract all specified attributes from the error element
                 for attributeName in self.attributeNames:
                     element = child.find(interlisPrefix + attributeName)
                     attributes[attributeName] = (element.text if element is not None else "")
-                
-                # Process only 'Error' or 'Warning' types
-                if attributes["Type"] == 'Error' or attributes["Type"] == 'Warning':
+
+                # Process all types of the IliVErrors 'Type' enumeration
+                if attributes["Type"] in ('Error', 'Warning', 'Info', 'DetailInfo'):
                     f = QgsFeature()
-                    
+
                     # Try to extract geometry if available
                     GeometryElement = child.find(interlisPrefix + 'Geometry')
                     if GeometryElement is not None:
                         Coordinate = GeometryElement.find(interlisPrefix + 'COORD')
-                        if Coordinate is not None:
-                            x_elem = Coordinate.find(interlisPrefix + 'C1')
-                            y_elem = Coordinate.find(interlisPrefix + 'C2')
-                            if x_elem is not None and y_elem is not None:
-                                try:
-                                    x = float(x_elem.text)
-                                    y = float(y_elem.text)
-                                    # Set geometry as a point
-                                    f.setGeometry(QgsGeometry.fromPointXY(QgsPointXY(x, y)))
-                                except ValueError:
-                                    pass  # Ignore invalid coordinate values
-                    
+                        point = readLV95Point(Coordinate, interlisPrefix)
+                        if point is not None:
+                            # Set geometry as a point
+                            f.setGeometry(QgsGeometry.fromPointXY(point))
+                        elif Coordinate is not None:
+                            # The error is still listed, just without a position
+                            rejectedCoordinates += 1
+                            rejectedMessages.append(
+                                f"Discarded implausible coordinate of error {TID}: {attributes['Message']}")
+
                     # Set attribute values, including a default 'Checked' column (set to 0)
                     attributeList = [TID]
                     attributeList.extend(list(attributes.values()))
                     attributeList.append(0)  # 0 means 'unchecked'
                     f.setAttributes(attributeList)
+                    features.append(f)
 
-                    # Add feature to the data provider (layer)
-                    errorDataProvider.addFeature(f)
-
-            if(errorLayer.featureCount()== 0):
-                QgsProject.instance().removeMapLayer(errorLayer)
+            if not features:
                 self.iface.messageBar().pushMessage(QCoreApplication.translate('generals', 'No Errors'), QCoreApplication.translate('generals', 'The selected XTF file contains no Ilivalidator-Errors, select another file.'), level=Qgis.Info, duration=8)
                 self.close()
                 return
 
+            # Fill the layer before it enters the project: while it is part of
+            # the project every change may trigger canvas and legend updates,
+            # and an empty layer being added first also defeats the automatic
+            # zoom QGIS does for the first layer of a project.
+            addFeaturesInBulk(errorLayer, features)
             errorLayer.updateExtents()
+            QgsProject.instance().addMapLayer(errorLayer)
             self.errorLayer = errorLayer
             self.hideCheckedColumns(errorLayer)
+
+            if rejectedCoordinates > 0:
+                # One log entry for all of them: the log panel appends and
+                # scrolls on every call, which takes seconds for thousands of
+                # entries once the panel is open.
+                QgsMessageLog.logMessage("\n".join(rejectedMessages), 'XTFLog_Checker', Qgis.Warning)
+                # Don't drop these silently - the errors are in the list but
+                # cannot be located on the map, see the log panel for details
+                self.iface.messageBar().pushMessage(
+                    QCoreApplication.translate('generals', 'Implausible coordinates'),
+                    QCoreApplication.translate('generals', f'{rejectedCoordinates} error(s) have a coordinate outside the LV95 extent and are shown without a position.'),
+                    level=Qgis.Warning, duration=10)
 
             if(self.errorLayer != None):
                 self.showDock()
@@ -317,6 +385,10 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
         line_layer = create_error_layer(fileName + "_igChecker_Lines", "LineString") if has_line else None
         polygon_layer = create_error_layer(fileName + "_igChecker_Surfaces", "Polygon") if has_surface else None
         no_geom_layer = create_error_layer(fileName + "_igChecker_NoGeometry", "None") if has_nogeom else None
+        point_features = []
+        line_features = []
+        polygon_features = []
+        no_geom_features = []
         # Step 3: Insert features
         for child in root.iter(interlisPrefix + 'ErrorLog14.Errors.Error'):
             TID = child.attrib["TID"]
@@ -352,7 +424,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                     attributeList.extend(list(attributes.values()))
                     attributeList.append(0)
                     f.setAttributes(attributeList)
-                    no_geom_layer.dataProvider().addFeature(f)
+                    no_geom_features.append(f)
                 continue
 
             LogType = geom_element[0].tag.split('.')[-1]      
@@ -369,7 +441,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)  # Checked
                         f.setAttributes(attributeList)
-                        point_layer.dataProvider().addFeature(f)
+                        point_features.append(f)
 
             elif LogType == 'LineGeometry' and line_layer:
                 polyline = child.find('.//ig:Geom/ig:POLYLINE', namespaces=ns)
@@ -385,7 +457,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)
                         f.setAttributes(attributeList)
-                        line_layer.dataProvider().addFeature(f)
+                        line_features.append(f)
 
             elif LogType == 'SurfaceGeometry' and polygon_layer:
                 polyline = child.find('.//ig:Geom/ig:SURFACE/ig:BOUNDARY/ig:POLYLINE', namespaces=ns)
@@ -401,7 +473,12 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)
                         f.setAttributes(attributeList)
-                        polygon_layer.dataProvider().addFeature(f)
+                        polygon_features.append(f)
+
+        addFeaturesInBulk(point_layer, point_features)
+        addFeaturesInBulk(line_layer, line_features)
+        addFeaturesInBulk(polygon_layer, polygon_features)
+        addFeaturesInBulk(no_geom_layer, no_geom_features)
 
         # Step 4: Add layers to project
         if point_layer and point_layer.featureCount() > 0:
@@ -532,7 +609,11 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
         line_layer = create_error_layer(fileName + "_igChecker24_Lines", "LineString") if has_line else None
         polygon_layer = create_error_layer(fileName + "_igChecker24_Surfaces", "Polygon") if has_surface else None
         no_geom_layer = create_error_layer(fileName + "_igChecker24_NoGeometry", "None") if has_nogeom else None
-        
+        point_features = []
+        line_features = []
+        polygon_features = []
+        no_geom_features = []
+
         # Step 3: Insert features
         for child in root.iter(interlisPrefix +'Error'):
             TID = child.attrib.get('{http://www.interlis.ch/xtf/2.4/INTERLIS}tid', '')
@@ -553,7 +634,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                     attributeList.extend(list(attributes.values()))
                     attributeList.append(0)
                     f.setAttributes(attributeList)
-                    no_geom_layer.dataProvider().addFeature(f)
+                    no_geom_features.append(f)
                 continue
 
             LogType = child.find('.//default:Geom', namespaces)[0].tag.split('}')[1]
@@ -568,7 +649,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)  # Checked
                         f.setAttributes(attributeList)
-                        point_layer.dataProvider().addFeature(f)
+                        point_features.append(f)
 
             elif LogType == 'LineGeometry' and line_layer:
                 polyline = child.find('.//geom:polyline', namespaces)
@@ -585,7 +666,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)
                         f.setAttributes(attributeList)
-                        line_layer.dataProvider().addFeature(f)
+                        line_features.append(f)
 
             elif LogType == 'SurfaceGeometry' and polygon_layer:
                 polyline = child.find('.//geom:surface', namespaces)
@@ -601,7 +682,12 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                         attributeList.extend(list(attributes.values()))
                         attributeList.append(0)
                         f.setAttributes(attributeList)
-                        polygon_layer.dataProvider().addFeature(f)
+                        polygon_features.append(f)
+
+        addFeaturesInBulk(point_layer, point_features)
+        addFeaturesInBulk(line_layer, line_features)
+        addFeaturesInBulk(polygon_layer, polygon_features)
+        addFeaturesInBulk(no_geom_layer, no_geom_features)
 
         # Step 4: Add layers to project
         if point_layer and point_layer.featureCount() > 0:
@@ -639,16 +725,28 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
     #             self.errorLayer = layer
     #             self.showDock()
 
+    def removeDockPanels(self):
+        """Remove and destroy every panel this plugin left in the main window.
+
+        Both classes have to be listed: XTFLog_igCheck_DockPanel does not derive
+        from XTFLog_DockPanel. Panels close themselves when their layer is
+        removed (closing the project, loading another log), but closing only
+        hides them - without deleting them here they pile up as invisible
+        children of the main window, each still holding its whole error list.
+        """
+        for panel_class in (XTFLog_DockPanel, XTFLog_igCheck_DockPanel):
+            for dock in self.iface.mainWindow().findChildren(panel_class):
+                try:
+                    self.iface.removeDockWidget(dock)
+                    dock.close()
+                    dock.deleteLater()
+                except Exception as e:
+                    print(f" Failed to remove previous dock: {e}")
+        self.dock = None
+
     def showErrorLog(self):
         # Remove the dock widget from QGIS interface
-        if hasattr(self, "dock") and self.dock is not None:
-            try:
-                self.iface.removeDockWidget(self.dock)
-                self.dock.close()
-                self.dock.deleteLater()
-            except Exception as e:
-                print(f" Failed to remove previous dock: {e}")
-            self.dock = None
+        self.removeDockPanels()
 
         # Step 2: Find the selected layer and show the new dock
         for layer in QgsProject.instance().mapLayers().values():
@@ -676,8 +774,7 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
                     self.layerbox.addItem(layer.name())
 
     def showDock(self):
-        for dock in self.iface.mainWindow().findChildren(XTFLog_DockPanel):
-            self.iface.removeDockWidget(dock)
+        self.removeDockPanels()
         if "_igChecker" in self.errorLayer.name():
             self.dock = XTFLog_igCheck_DockPanel(self.iface, self.errorLayer)
         else:
@@ -696,5 +793,4 @@ class XTFLog_CheckerDialog(QtWidgets.QDialog, FORM_CLASS):
 
     def closePlugin(self):
         self.close()
-        if self.dock != None:
-            self.iface.removeDockWidget(self.dock)
+        self.removeDockPanels()

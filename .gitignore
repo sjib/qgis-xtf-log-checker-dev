@@ -142,3 +142,9 @@ cython_debug/
 
 #ds_store
 .DS_Store
+
+#claude file
+.claude/
+
+# Cursor 本机规则（不上传）
+.cursor/
